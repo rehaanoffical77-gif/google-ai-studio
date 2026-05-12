@@ -769,113 +769,103 @@ export default function Checkout() {
         )}
       </div>
 
-      <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-4 lg:space-y-0 px-1 font-sans">
-        <div className="lg:col-span-2">
-           <h3 className="text-xl font-bold text-[#0D1B2A] mb-6 italic">Choose Payment Method</h3>
-        </div>
-        
-        {/* UPI Section */}
-        <div className="space-y-4">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Digital UPI</p>
-          <div className="bg-white rounded-[32px] border border-gray-100 divide-y divide-gray-50 shadow-xl overflow-hidden">
-            {[
-              { id: 'googlepay', name: 'Google Pay', sub: 'Secure via NPCI', icon: <Smartphone size={20} className="text-blue-500" /> },
-              { id: 'phonepe', name: 'PhonePe', sub: 'Instant settlement', icon: <Smartphone size={20} className="text-purple-600" /> },
-              { id: 'paytm', name: 'Paytm', sub: 'Fast & Secure', icon: <Smartphone size={20} className="text-sky-400" /> }
-            ].map((method) => (
-              <button 
-                key={method.id} 
-                onClick={() => { setSelectedPayment(method.id); setIsCOD(false); }}
-                className="w-full p-6 flex items-center justify-between group lg:hover:bg-gray-50 transition-all"
-              >
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 transition-transform group-hover:scale-110">
-                    {method.icon}
-                  </div>
-                  <div className="text-left">
-                    <p className="text-base font-bold text-gray-900 leading-none mb-1.5">{method.name}</p>
-                    <p className="text-[12px] text-gray-400 font-medium leading-none italic">{method.sub}</p>
-                  </div>
-                </div>
-                <div className={cn(
-                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300",
-                  selectedPayment === method.id ? "border-[#E31837] scale-110 shadow-sm" : "border-gray-200"
-                )}>
-                  {selectedPayment === method.id && <div className="w-3.5 h-3.5 bg-[#E31837] rounded-full animate-in zoom-in-50" />}
-                </div>
-              </button>
-            ))}
+      <div className="flex flex-col h-full gap-4 pb-20">
+        <div className="shrink-0 bg-white rounded-3xl p-5 shadow-lg border border-gray-100">
+          <div className="flex justify-between items-center mb-3">
+             <h3 className="text-lg font-bold text-gray-900 italic">Bill Summary</h3>
+             <span className="text-[10px] font-black text-red-500 uppercase tracking-widest bg-red-50 px-3 py-1 rounded-full">Secure</span>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>Items Total</span>
+              <span className="font-bold">₹{subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>Delivery & Tax</span>
+              <span className="font-bold">₹{(DELIVERY_FEE + PACKAGING_FEE + tax).toFixed(2)}</span>
+            </div>
+            {couponApplied && (
+              <div className="flex justify-between text-xs text-green-600 font-bold">
+                <span>Coupon Applied</span>
+                <span>-₹{(VALID_COUPONS[promoCode] || 50).toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-lg font-black text-gray-900 border-t border-dashed border-gray-100 pt-2 mt-1">
+              <span>To Pay</span>
+              <span className="text-[#E31837]">₹{(finalTotal + PACKAGING_FEE).toFixed(2)}</span>
+            </div>
           </div>
         </div>
 
-        {/* Cards & Others */}
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto no-scrollbar space-y-4">
+          <h3 className="text-base font-bold text-[#0D1B2A] italic px-2">Payment Method</h3>
           <div className="space-y-4">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Traditional & Cards</p>
-            <div className="space-y-3">
-              <button className="w-full bg-white p-6 rounded-[32px] border border-gray-100 flex items-center justify-between shadow-lg lg:hover:shadow-xl lg:hover:border-red-100 transition-all group">
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center border border-red-100 group-hover:rotate-6 transition-transform">
-                    <CreditCard size={22} className="text-[#E31837]" />
+            <div className="bg-white rounded-3xl border border-gray-100 divide-y divide-gray-50 shadow-md overflow-hidden">
+              {[
+                { id: 'googlepay', name: 'Google Pay', sub: 'Safe via NPCI', icon: <Smartphone size={18} className="text-blue-500" /> },
+                { id: 'phonepe', name: 'PhonePe', sub: 'Instant pay', icon: <Smartphone size={18} className="text-purple-600" /> },
+                { id: 'paytm', name: 'Paytm', sub: 'Fast checkout', icon: <Smartphone size={18} className="text-sky-400" /> }
+              ].map((method) => (
+                <button 
+                  key={method.id} 
+                  onClick={() => { setSelectedPayment(method.id); setIsCOD(false); }}
+                  className="w-full p-5 flex items-center justify-between active:bg-gray-50 transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                      {method.icon}
+                    </div>
+                    <div className="text-left leading-tight">
+                      <p className="text-sm font-bold text-gray-800">{method.name}</p>
+                      <p className="text-[10px] text-gray-400 italic">{method.sub}</p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="text-base font-bold text-gray-900 leading-none mb-1.5">Credit / Debit Cards</p>
-                    <p className="text-[12px] text-gray-400 font-medium leading-none italic uppercase">Visa, Master & more</p>
+                  <div className={cn(
+                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                    selectedPayment === method.id ? "border-[#E31837]" : "border-gray-200"
+                  )}>
+                    {selectedPayment === method.id && <div className="w-2.5 h-2.5 bg-[#E31837] rounded-full" />}
                   </div>
-                </div>
-                <ChevronRight size={20} className="text-gray-300 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              <button 
-                onClick={() => { setIsCOD(true); setSelectedPayment('cod'); }}
-                className={cn(
-                  "w-full p-6 rounded-[32px] border flex items-center justify-between shadow-lg lg:hover:shadow-xl transition-all group",
-                  isCOD ? "bg-[#FFF5F6] border-[#FFD9DB]" : "bg-white border-gray-100"
-                )}
-              >
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center border border-green-100 group-hover:-rotate-6 transition-transform">
-                    <Banknote size={24} className="text-green-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-base font-bold text-gray-900 leading-none mb-1.5 italic">Cash on Delivery</p>
-                    <p className="text-[12px] text-gray-400 font-medium leading-none italic uppercase tracking-tighter">Pay at your doorstep</p>
-                  </div>
-                </div>
-                <div className={cn(
-                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300",
-                  isCOD ? "border-[#E31837] scale-110 shadow-sm" : "border-gray-200"
-                )}>
-                  {isCOD && <div className="w-3.5 h-3.5 bg-[#E31837] rounded-full animate-in zoom-in-50" />}
-                </div>
-              </button>
+                </button>
+              ))}
             </div>
-          </div>
 
-          <div className="bg-green-50/50 rounded-[24px] p-4 flex items-start gap-3 border border-green-100">
-            <CheckCircle2 size={18} className="text-green-600 mt-1" />
-            <div className="flex-1">
-              <p className="text-[11px] font-bold text-green-700 italic">Trusted & Secure Payments</p>
-              <p className="text-[10px] text-green-600/70 font-medium">Your payment information is encrypted and never stored on our servers.</p>
-            </div>
-            <Lock size={16} className="text-green-600 shrink-0" />
+            <button 
+              onClick={() => { setIsCOD(true); setSelectedPayment('cod'); }}
+              className={cn(
+                "w-full p-5 rounded-3xl border flex items-center justify-between shadow-md transition-all",
+                isCOD ? "bg-red-50/50 border-red-100" : "bg-white border-gray-100"
+              )}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center border border-green-100">
+                  <Banknote size={20} className="text-green-600" />
+                </div>
+                <div className="text-left leading-tight">
+                  <p className="text-sm font-bold text-gray-800 italic">Cash on Delivery</p>
+                  <p className="text-[10px] text-gray-400 italic">Pay at doorstep</p>
+                </div>
+              </div>
+              <div className={cn(
+                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                isCOD ? "border-[#E31837]" : "border-gray-200"
+              )}>
+                {isCOD && <div className="w-2.5 h-2.5 bg-[#E31837] rounded-full" />}
+              </div>
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Main Action Button (Mobile Only) */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-50 max-w-lg mx-auto z-40 lg:hidden">
-        <button 
-          onClick={handlePlaceOrder}
-          disabled={!selectedPayment && !isCOD}
-          className="w-full h-16 bg-gradient-to-r from-[#FF2B2B] to-[#E31837] disabled:opacity-50 text-white rounded-[22px] font-bold text-lg shadow-[0_10px_30px_rgba(227,24,55,0.3)] transition-all active:scale-95 flex items-center justify-between px-8 group"
-        >
-          <span>Pay & Place Order</span>
-          <div className="flex items-center gap-3">
-            <span className="font-black">₹{(finalTotal + PACKAGING_FEE).toFixed(2)}</span>
-            <ChevronRight size={22} className="group-hover:translate-x-1 transition-transform" />
-          </div>
-        </button>
+        <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 z-40 lg:hidden">
+          <button 
+            onClick={handlePlaceOrder}
+            disabled={!selectedPayment && !isCOD}
+            className="w-full h-14 bg-gradient-to-r from-[#FF2B2B] to-[#E31837] disabled:opacity-50 text-white rounded-2xl font-bold text-sm shadow-lg shadow-red-100 active:scale-95 flex items-center justify-between px-6"
+          >
+            <span className="flex items-center gap-2">Pay & Place Order <ChevronRight size={18} /></span>
+            <span className="font-black text-base">₹{(finalTotal + PACKAGING_FEE).toFixed(2)}</span>
+          </button>
+        </div>
       </div>
     </motion.div>
   );
@@ -915,191 +905,103 @@ export default function Checkout() {
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="pb-40 -mt-10"
+        className="flex flex-col h-full gap-4 pb-10"
       >
         {/* Success Header Area */}
-        <div className="bg-gradient-to-b from-[#E31837] to-[#FF4D4D] pt-12 pb-16 px-6 text-center relative overflow-hidden -mx-4 rounded-b-[40px]">
-          {/* Confetti simulation (dots) */}
-          <div className="absolute inset-0 pointer-events-none opacity-30">
-            {[...Array(20)].map((_, i) => (
+        <div className="shrink-0 bg-gradient-to-b from-[#E31837] to-[#FF4D4D] py-8 px-6 text-center relative overflow-hidden -mx-4 rounded-b-[40px] shadow-lg shadow-red-100">
+          <div className="absolute inset-0 pointer-events-none opacity-20">
+            {[...Array(15)].map((_, i) => (
               <motion.div
                 key={i}
                 initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 500, opacity: [0, 1, 0] }}
-                transition={{ duration: 3 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 5 }}
-                className={cn(
-                  "absolute w-2 h-2 rounded-full",
-                  i % 3 === 0 ? "bg-yellow-400" : i % 3 === 1 ? "bg-blue-400" : "bg-white"
-                )}
+                animate={{ y: 300, opacity: [0, 1, 0] }}
+                transition={{ duration: 2 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 2 }}
+                className="absolute w-1.5 h-1.5 rounded-full bg-white"
                 style={{ left: `${Math.random() * 100}%` }}
               />
             ))}
           </div>
 
           <motion.div 
-            initial={{ scale: 0, rotate: -20 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: 'spring', damping: 12 }}
-            className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto shadow-2xl relative z-10"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto shadow-xl relative z-10 mb-4"
           >
-            <div className="w-16 h-16 rounded-full border-4 border-green-500 flex items-center justify-center">
-              <CheckCircle2 size={32} className="text-green-500" />
-            </div>
+            <CheckCircle2 size={32} className="text-green-500" />
           </motion.div>
           
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-6 space-y-2 relative z-10 font-sans"
-          >
-            <h2 className="text-4xl font-serif italic font-bold text-white tracking-tight">Order Placed!</h2>
-            <p className="text-sm font-bold text-white/90">Thank you for your order. Your food is on its way!</p>
-          </motion.div>
+          <h2 className="text-2xl font-black text-white italic truncate px-4">Order Confirmed!</h2>
+          <p className="text-[10px] text-white/80 font-bold uppercase tracking-widest mt-1">Order #{orderIdShort}</p>
         </div>
 
-        {/* Order Details Card */}
-        <div className="px-4 -mt-10 relative z-20 space-y-4">
-          <div className="bg-white rounded-[24px] shadow-xl border border-gray-100 overflow-hidden font-sans">
-            <div className="p-5 border-b border-gray-50 bg-gray-50/30 flex justify-between">
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Order ID</p>
-                <p className="text-sm font-black text-gray-800 tracking-tight">FJ{orderIdShort}</p>
+        <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 px-1">
+          <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
+                  <Bike size={16} />
+                </div>
+                <div className="leading-none">
+                  <p className="text-[8px] font-bold text-gray-400 uppercase tracking-wider">Status</p>
+                  <p className="text-[11px] font-black text-gray-800">Assigning Partner</p>
+                </div>
               </div>
-              <div className="text-right space-y-1">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Order Placed On</p>
-                <p className="text-sm font-bold text-gray-800">
-                  {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
+              <button className="bg-gray-50 text-gray-400 p-1.5 rounded-lg">
+                <Download size={14} />
+              </button>
             </div>
 
-            <div className="p-5 border-b border-dashed border-gray-100 grid grid-cols-3 gap-2">
-              <div className="flex flex-col items-center text-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-red-50 text-[#E31837] flex items-center justify-center">
-                  <Clock size={20} />
+            <div className="p-4 space-y-3">
+              {orderItems.map((item: any, idx: number) => (
+                <div key={idx} className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-gray-600 italic">
+                    <span className="text-red-500 mr-2">{item.quantity}x</span>
+                    {item.name}
+                  </span>
+                  <span className="font-black text-gray-800">₹{(item.price * item.quantity).toFixed(2)}</span>
                 </div>
-                <div>
-                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">Est. Delivery</p>
-                   <p className="text-[11px] font-black text-green-600">25 - 35 mins</p>
-                </div>
-              </div>
-              <div className="flex flex-col items-center text-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-red-50 text-[#E31837] flex items-center justify-center">
-                  <MapIcon size={20} />
-                </div>
-                <div>
-                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">Delivering to</p>
-                   <p className="text-[11px] font-black text-gray-800">{displayOrder.address?.label || 'Home'}</p>
-                   <button className="text-[9px] font-bold text-[#E31837] flex items-center justify-center gap-0.5">
-                     View Address <ChevronRight size={8} />
-                   </button>
-                </div>
-              </div>
-              <div className="flex flex-col items-center text-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-red-50 text-[#E31837] flex items-center justify-center">
-                  <Bike size={20} />
-                </div>
-                <div>
-                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tight">Partner</p>
-                   <p className="text-[11px] font-black text-gray-800">On the way</p>
-                   <button className="text-[9px] font-bold text-[#E31837] flex items-center justify-center gap-0.5">
-                     View Details <ChevronRight size={8} />
-                   </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Bill Details */}
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-gray-900 italic">Bill Details</h3>
-                <button className="bg-red-50 text-[#E31837] text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 active:scale-95 transition-transform">
-                  Download Bill <Download size={14} />
-                </button>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                {orderItems.map((item: any, idx: number) => (
-                  <div key={idx} className="flex gap-3">
-                    <div className="w-14 h-14 rounded-xl overflow-hidden shadow-sm shrink-0">
-                      <img src={item.image || null} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-1 flex flex-col justify-center">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 border border-green-600 p-0.5 flex items-center justify-center shrink-0">
-                          <div className="w-full h-full bg-green-600 rounded-full" />
-                        </div>
-                        <p className="text-[12px] font-bold text-gray-800 leading-tight italic">{item.name}</p>
-                      </div>
-                      <p className="text-[11px] font-bold text-gray-400 ml-4.5 mt-1">₹{item.price}</p>
-                    </div>
-                    <div className="flex flex-col items-end justify-center">
-                      <div className="bg-red-50 text-[#E31837] w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold mb-1">
-                        {item.quantity}
-                      </div>
-                      <p className="text-[12px] font-black text-gray-800 italic">₹{(item.price * item.quantity).toFixed(2)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-2.5 pt-4 border-t border-dashed border-gray-100">
-                <div className="flex justify-between items-center text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                  <span>Subtotal ({orderItems.length} Items)</span>
-                  <span className="text-gray-800 italic">₹{subtotalVal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                  <span>Delivery Charges</span>
-                  <span className="text-gray-800 italic">₹{deliveryVal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center text-[11px] font-bold text-gray-400 uppercase tracking-tight">
-                  <span>Packaging Charges</span>
-                  <span className="text-gray-800 italic">₹{packagingVal.toFixed(2)}</span>
-                </div>
+              ))}
+              
+              <div className="pt-3 border-t border-dashed border-gray-100 space-y-1">
                 {discountVal > 0 && (
-                  <div className="flex justify-between items-center text-[11px] font-bold text-green-600 uppercase tracking-tight">
-                    <span>Promo Code ({promoCode || 'SAVE20'})</span>
-                    <span className="italic">-₹{discountVal.toFixed(2)}</span>
+                  <div className="flex justify-between text-[10px] text-green-600 font-bold uppercase">
+                    <span>Discount</span>
+                    <span>-₹{discountVal.toFixed(2)}</span>
                   </div>
                 )}
-                
-                <div className="h-px border-t border-dashed border-gray-100 my-2" />
-                
-                <div className="flex justify-between items-center">
-                  <h4 className="text-sm font-bold text-gray-900 italic">Total Amount</h4>
-                  <span className="text-2xl font-black text-[#E31837] italic">₹{(totalVal + packagingVal).toFixed(2)}</span>
+                <div className="flex justify-between text-[10px] text-gray-400 font-bold uppercase">
+                  <span>Fees & Taxes</span>
+                  <span>₹{(deliveryVal + packagingVal).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-base font-black text-gray-900 italic pt-1">
+                  <span>To be paid</span>
+                  <span className="text-red-600">₹{(totalVal + packagingVal).toFixed(2)}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-green-50/60 rounded-xl p-4 flex items-center gap-3 border border-green-100 font-sans">
-            <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center shrink-0">
-               <CheckCircle2 size={16} />
-            </div>
-            <p className="text-[11px] font-bold text-green-700 leading-tight">Your order is confirmed and will be delivered soon.</p>
+          <div className="bg-green-50/50 rounded-xl p-3 border border-green-100 flex items-center gap-3">
+            <CheckCircle2 size={16} className="text-green-500 shrink-0" />
+            <p className="text-[10px] font-black text-green-700 tracking-tight leading-none uppercase">Chef has received your order</p>
           </div>
+        </div>
 
-          <div className="space-y-3 pt-4">
-            <button 
-              onClick={() => setCurrentStep('tracking')}
-              className="w-full bg-gradient-to-r from-[#FF2B2B] to-[#E31837] text-white h-16 rounded-[22px] font-bold text-sm shadow-[0_10px_30px_rgba(227,24,55,0.3)] transition-all active:scale-95 flex items-center justify-between px-8 group font-sans"
-            >
-              <div className="flex items-center gap-3">
-                <Bike size={24} />
-                <span>Track Live Status</span>
-              </div>
-              <ChevronRight size={22} className="group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button 
-              onClick={() => navigate('/')}
-              className="w-full h-16 rounded-[22px] border border-gray-100 bg-white text-gray-500 font-bold text-sm hover:border-gray-200 hover:text-gray-900 transition-all shadow-sm flex items-center px-8 gap-4 font-sans"
-            >
-              <Home size={22} />
-              <span>Go Back Home</span>
-            </button>
-          </div>
+        <div className="shrink-0 space-y-2 pt-2">
+          <button 
+            onClick={() => setCurrentStep('tracking')}
+            className="w-full bg-red-600 text-white h-14 rounded-2xl font-bold text-sm shadow-lg shadow-red-100 active:scale-95 flex items-center justify-center gap-3"
+          >
+            <Bike size={20} />
+            Track Live Status
+          </button>
+          <button 
+            onClick={() => navigate('/')}
+            className="w-full h-12 rounded-2xl bg-gray-50 text-gray-400 font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <Home size={16} />
+            Back to Home
+          </button>
         </div>
       </motion.div>
     );
@@ -1181,54 +1083,50 @@ export default function Checkout() {
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="space-y-8"
+        className="flex flex-col h-full gap-4 pb-10"
       >
-        <div className="bg-white rounded-[50px] p-10 shadow-2xl shadow-gray-200/50 border border-gray-50/50 space-y-10 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-bl-[100px] -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+        <div className="bg-white rounded-[32px] p-6 shadow-xl border border-gray-50/50 space-y-6 relative overflow-hidden shrink-0">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-[80px] -mr-6 -mt-6" />
           
           <div className="flex justify-between items-start relative z-10">
-            <div>
-              <h3 className="text-3xl font-black text-gray-900 italic tracking-tighter leading-none">
+            <div className="flex-1 pr-4">
+              <h3 className="text-xl font-black text-gray-900 italic tracking-tight leading-tight">
                 {isCancelled ? 'Order Voided' : 
-                 currentOrder?.status === 'delivered' ? 'Feast Delivered!' : 
+                 currentOrder?.status === 'delivered' ? 'Food Home!' : 
                  currentOrder?.status === 'on the way' ? 'Almost There!' :
                  currentOrder?.status === 'ready' ? 'Hot & Ready!' : 'In the Works'}
               </h3>
-              <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em] mt-3 flex items-center gap-2">
-                <div className="w-1 h-1 bg-red-500 rounded-full animate-ping" />
-                {isCancelled ? 'Transaction cancelled by system' :
-                 currentOrder?.status === 'received' ? 'Waiting for chef confirmation' :
-                 currentOrder?.status === 'preparing' ? 'Sizzling & seasoning now' : 
-                 currentOrder?.status === 'on the way' ? 'Hero is 5 mins away' : 
-                 currentOrder?.status === 'delivered' ? 'Check your doorstep' : 'Gearing up for greatness'}
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                {isCancelled ? 'Cancelled' : currentOrder?.status || 'Processing'}
               </p>
             </div>
-            <div className="w-14 h-14 bg-red-500 rounded-[22px] text-white flex items-center justify-center shadow-lg shadow-red-500/20 transform rotate-6">
-              <Clock size={28} />
+            <div className="w-12 h-12 bg-red-600 rounded-2xl text-white flex items-center justify-center shadow-lg shadow-red-100 transform rotate-3 shrink-0">
+              <Clock size={24} />
             </div>
           </div>
 
           {!isCancelled && (
-            <div className="space-y-12 relative px-2">
-              <div className="absolute left-[21px] top-4 bottom-4 w-[2px] bg-gray-100" />
+            <div className="space-y-6 relative px-1">
+              <div className="absolute left-[13px] top-2 bottom-2 w-[1.5px] bg-gray-50" />
               
-              {statusSteps.map((s, idx) => (
-                <div key={idx} className="flex gap-8 relative">
+              {statusSteps.slice(0, 5).map((s, idx) => (
+                <div key={idx} className="flex gap-4 relative">
                   <div className={cn(
-                    "w-9 h-9 rounded-full border-4 border-white flex items-center justify-center z-10 shadow-xl transition-all duration-700",
-                    idx < currentStatusIdx ? "bg-red-500 scale-90" : idx === currentStatusIdx ? "bg-white ring-4 ring-red-500/10" : "bg-gray-100"
+                    "w-7 h-7 rounded-full border-4 border-white flex items-center justify-center z-10 shadow-md",
+                    idx < currentStatusIdx ? "bg-red-500" : idx === currentStatusIdx ? "bg-white ring-2 ring-red-500" : "bg-gray-100"
                   )}>
-                    {idx < currentStatusIdx ? <CheckCircle2 size={16} className="text-white" /> : 
-                     idx === currentStatusIdx ? <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]" /> : null}
+                    {idx < currentStatusIdx ? <CheckCircle2 size={12} className="text-white" /> : 
+                     idx === currentStatusIdx ? <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /> : null}
                   </div>
-                  <div className={cn("transition-all duration-500", idx > currentStatusIdx ? "opacity-30 translate-x-2" : "opacity-100 translate-x-0")}>
+                  <div className="flex-1 min-w-0">
                     <p className={cn(
-                      "text-[13px] font-black uppercase tracking-widest leading-none mb-1.5", 
+                      "text-[11px] font-black uppercase tracking-tight truncate", 
                       idx === currentStatusIdx ? "text-red-500 italic" : "text-gray-900"
                     )}>
                       {s.label}
                     </p>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight italic">{idx <= currentStatusIdx ? s.desc : 'Next Mission Step'}</p>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase truncate">{idx <= currentStatusIdx ? s.desc : 'Next Step'}</p>
                   </div>
                 </div>
               ))}
@@ -1236,55 +1134,38 @@ export default function Checkout() {
           )}
         </div>
 
-        <div className="bg-gray-900 text-white rounded-[40px] p-6 flex items-center gap-5 shadow-2xl relative overflow-hidden group">
-          <div className="w-16 h-16 rounded-[20px] bg-white/10 p-1 overflow-hidden shrink-0 transform group-hover:rotate-12 transition-transform border border-white/10">
+        <div className="bg-gray-900 text-white rounded-[32px] p-4 flex items-center gap-4 shadow-xl shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-white/10 p-0.5 overflow-hidden shrink-0 border border-white/10">
             <img 
               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentOrder?.deliveryPartnerName || 'Delivery'}`} 
               alt="" 
               className="w-full h-full object-cover" 
             />
           </div>
-          <div className="flex-1">
-            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">
-              {currentOrder?.deliveryPartnerName ? 'Out for Delivery' : 'Assigning Hero'}
+          <div className="flex-1 min-w-0">
+            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">
+              {currentOrder?.deliveryPartnerName ? 'Out for Delivery' : 'Assigning'}
             </p>
-            <p className="text-base font-black italic tracking-tighter leading-none">
-              {currentOrder?.deliveryPartnerName || 'Fetching Hero Details...'}
+            <p className="text-sm font-black italic tracking-tighter truncate leading-none">
+              {currentOrder?.deliveryPartnerName || 'Finding Hero...'}
             </p>
-            {currentOrder?.deliveryPartnerName ? (
-               <div className="flex items-center gap-1 text-yellow-500 mt-2">
-                 <Star size={10} fill="currentColor" />
-                 <span className="text-[10px] font-black text-gray-400">4.9 • Best Pilot</span>
-               </div>
-            ) : (
-               <div className="flex items-center gap-2 mt-2">
-                 <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                 <span className="text-[10px] font-bold text-gray-600 italic">Chef is finishing your meal</span>
-               </div>
-            )}
           </div>
-          <div className="flex gap-2">
-            {currentOrder?.deliveryPartnerPhone ? (
-              <a 
-                href={`tel:${currentOrder.deliveryPartnerPhone}`}
-                className="p-4 bg-red-500 hover:bg-red-600 rounded-[24px] text-white transition-all active:scale-95 shadow-lg shadow-red-500/20 flex items-center justify-center"
-              >
-                <Phone size={20} />
-              </a>
-            ) : (
-              <button className="p-4 bg-white/5 cursor-not-allowed rounded-[24px] text-white/20 transition-all shadow-inner">
-                <Phone size={20} />
-              </button>
-            )}
-          </div>
+          {currentOrder?.deliveryPartnerPhone && (
+            <a 
+              href={`tel:${currentOrder.deliveryPartnerPhone}`}
+              className="w-10 h-10 bg-red-600 rounded-xl text-white flex items-center justify-center shadow-lg shadow-red-900/50"
+            >
+              <Phone size={18} />
+            </a>
+          )}
         </div>
 
         {cancelTimeLeft > 0 && !isCancelled && (
           <button 
             onClick={handleCancelOrder}
-            className="w-full text-[10px] font-black text-white uppercase tracking-widest bg-[#E31837] py-4 rounded-[20px] shadow-lg shadow-red-500/20 active:scale-95 transition-all"
+            className="w-full text-[9px] font-black text-white uppercase tracking-widest bg-red-600/10 text-red-600 py-3 rounded-xl border border-red-100"
           >
-            Order Cancellation available for {cancelTimeLeft} more seconds
+            Cancel Order ({cancelTimeLeft}s)
           </button>
         )}
       </motion.div>

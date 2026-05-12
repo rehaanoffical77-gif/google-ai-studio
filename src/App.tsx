@@ -10,15 +10,8 @@ import { useEffect, useState } from 'react';
 import { seedMenu } from './lib/seed';
 
 export default function App() {
-  const [isInitializing, setIsInitializing] = useState(true);
-
   useEffect(() => {
     seedMenu();
-    // Pre-loader simulates a minimum splash time
-    const timer = setTimeout(() => {
-      setIsInitializing(false);
-    }, 500); 
-    return () => clearTimeout(timer);
   }, []);
 
   return (

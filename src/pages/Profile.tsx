@@ -1064,12 +1064,12 @@ export default function Profile() {
 
   function renderAuth() {
     return (
-      <div className="h-[100dvh] bg-gray-50 flex items-center justify-center p-4 overflow-hidden">
-        <div className="w-full h-full max-w-md flex flex-col justify-center overflow-y-auto no-scrollbar py-8">
+      <div className="fixed inset-0 bg-gray-50 flex items-center justify-center p-4 z-[9999]">
+        <div className="w-full max-w-sm flex flex-col justify-center">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-8 md:p-12 shadow-xl border border-gray-100 space-y-6"
+            className="bg-white rounded-3xl p-6 md:p-8 shadow-2xl border border-gray-100 space-y-6 overflow-y-auto no-scrollbar max-h-[90vh]"
           >
             <div className="text-center">
               <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-100">

@@ -1,16 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UtensilsCrossed, Pizza, Coffee, Beef, Cookie } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function SplashScreen() {
-  const [show, setShow] = useState(true);
+  const { loading } = useAuth();
+  const [isVisible, setIsVisible] = useState(false);
+  const [isTimerDone, setIsTimerDone] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShow(false);
-    }, 3000);
-    return () => clearTimeout(timer);
+    // Check if we've already shown the splash this session
+    const hasShownSplash = sessionStorage.getItem('hasShownSplash');
+    
+    if (!hasShownSplash) {
+      setIsVisible(true);
+      const timer = setTimeout(() => {
+        setIsTimerDone(true);
+        sessionStorage.setItem('hasShownSplash', 'true');
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
   }, []);
+
+  // Use the auth state + timer to decide when to hide
+  // isVisible is only true if it hasn't been shown this session
+  // We only exit when the timer is done AND auth is finished loading
+  const shouldShow = isVisible && !(isTimerDone && !loading);
 
   const floatingIcons = [
     { Icon: Pizza, top: '15%', left: '10%', delay: 0.2 },
@@ -21,12 +36,12 @@ export default function SplashScreen() {
 
   return (
     <AnimatePresence>
-      {show && (
+      {shouldShow && (
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1, ease: [0.43, 0.13, 0.23, 0.96] }}
-          className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center overflow-hidden"
+          transition={{ duration: 0.8, ease: [0.43, 0.13, 0.23, 0.96] }}
+          className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center overflow-hidden touch-none"
         >
           {/* Background Decorative Circles */}
           <motion.div 
