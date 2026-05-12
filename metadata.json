@@ -1,0 +1,12 @@
+{
+  "name": "Food Junction",
+  "description": "A premium single-restaurant food ordering experience with real-time menu browsing and order management.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "Food Ordering",
+    "Real-time Tracking",
+    "Online Payments"
+  ]
+}

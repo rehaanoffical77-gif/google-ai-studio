@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        request.auth.token.email == 'rehaanoffical77@gmail.com' ||
+        request.auth.token.email == 'capcutrehaan@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Users: User can manage their own profile, Admin can see all
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isAdmin() || isOwner(userId));
+      allow list: if isAdmin();
+      allow write: if isOwner(userId);
+    }
+
+    // Menu: Publicly readable, admin manageable
+    match /menu/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders: User can create their own, read their own. Admin can manage all.
+    match /orders/{orderId} {
+      function isValidOrder(data) {
+        return (get(/databases/$(database)/documents/settings/config).data.isOpen == true)
+          && data.userId == request.auth.uid 
+          && (data.userEmail == request.auth.token.email || data.userEmail == null)
+          && data.items is list 
+          && data.items.size() > 0
+          && data.total is number 
+          && data.status in ['received', 'preparing', 'ready', 'on the way', 'delivered', 'cancelled']
+          && (data.createdAt is timestamp || data.createdAt == request.time)
+          && (data.address is map || data.address == null)
+          && (data.paymentMethod is string || data.paymentMethod == null)
+          && (data.estimatedDelivery is string || data.estimatedDelivery == null)
+          && (data.deliveryPartnerName is string || !('deliveryPartnerName' in data))
+          && (data.deliveryPartnerPhone is string || !('deliveryPartnerPhone' in data));
+      }
+
+      allow create: if isVerified() && isValidOrder(incoming());
+      
+      // Allow admin to list all, users only their own
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (resource.data.userId == request.auth.uid && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['status']) && 
+         incoming().status == 'cancelled' &&
+         existing().status == 'received')
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    // Settings: Global restaurant settings
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Addresses: User can manage their own
+    match /addresses/{addressId} {
+      function isValidAddress(data) {
+        return data.userId == request.auth.uid
+          && data.label is string && data.label.size() <= 64
+          && data.street is string && data.street.size() <= 256
+          && data.city is string && data.city.size() <= 128;
+      }
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isVerified() && isValidAddress(incoming());
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && (isAdmin() || isValidAddress(incoming()));
+      allow delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+
+    // Payments: User can manage their own
+    match /payments/{paymentId} {
+      allow read, write: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+
+    // Favorites: User can manage their own
+    match /favorites/{favoriteId} {
+      allow read, write: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid || incoming().userId == request.auth.uid);
+    }
+
+    // Admins collection: Only readable/writable by existing admins
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

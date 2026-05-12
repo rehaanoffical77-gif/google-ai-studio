@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "MenuItem": {
+      "title": "Menu Item",
+      "description": "A food item available for ordering",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "isAvailable": { "type": "boolean" },
+        "rating": { "type": "number" }
+      },
+      "required": ["name", "price", "category"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A customer's food order",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "total": { "type": "number" },
+        "status": { "enum": ["received", "preparing", "ready", "on the way", "delivered", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "address": { "type": "object" },
+        "paymentMethod": { "type": "string" },
+        "deliveryPartnerName": { "type": "string" },
+        "deliveryPartnerPhone": { "type": "string" },
+        "estimatedDelivery": { "type": "string" }
+      },
+      "required": ["userId", "items", "total", "status", "createdAt"]
+    },
+    "Address": {
+      "title": "Address",
+      "description": "User's delivery address",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "label": { "type": "string" },
+        "street": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "zipCode": { "type": "string" },
+        "instructions": { "type": "string" },
+        "isDefault": { "type": "boolean" },
+        "zone": { "enum": ["1st Zone", "2nd Zone", "3rd Zone"] }
+      },
+      "required": ["userId", "label", "street", "city", "zone"]
+    },
+    "PaymentMethod": {
+      "title": "Payment Method",
+      "description": "User's saved payment method",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "enum": ["card", "upi", "wallet"] },
+        "provider": { "type": "string" },
+        "lastFour": { "type": "string" },
+        "expiry": { "type": "string" },
+        "isDefault": { "type": "boolean" }
+      },
+      "required": ["userId", "type", "provider"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "User's favorite menu item",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "itemId": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "image": { "type": "string" }
+      },
+      "required": ["userId", "itemId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users": {
+      "schema": "User",
+      "description": "User profile information"
+    },
+    "/menu": {
+      "schema": "MenuItem",
+      "description": "Collection of food items available in the restaurant"
+    },
+    "/orders": {
+      "schema": "Order",
+      "description": "Collection of all customer orders"
+    },
+    "/addresses": {
+      "schema": "Address",
+      "description": "User saved addresses"
+    },
+    "/payments": {
+      "schema": "PaymentMethod",
+      "description": "User saved payment methods"
+    },
+    "/favorites": {
+      "schema": "Favorite",
+      "description": "User saved favorite items"
+    }
+  }
+}
