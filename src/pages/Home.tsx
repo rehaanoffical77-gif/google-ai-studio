@@ -38,11 +38,11 @@ export default function Home() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-[100dvh] bg-gray-50 flex flex-col overflow-hidden">
       <Header onCartClick={() => setIsCartOpen(true)} />
       
       {/* Search Bar - Mobile Only */}
-      <div className="md:hidden px-4 py-3 bg-white border-b border-gray-100">
+      <div className="shrink-0 md:hidden px-4 py-3 bg-white border-b border-gray-100">
         <div className="relative">
           <input 
             type="text" 
@@ -55,7 +55,7 @@ export default function Home() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="flex-1 overflow-y-auto no-scrollbar max-w-7xl mx-auto px-4 py-6 w-full">
         {/* Mobile Promo Banner */}
         <div className="md:hidden rounded-2xl overflow-hidden mb-6 bg-gradient-to-br from-red-500 to-rose-600 p-6 text-white relative shadow-lg">
           <div className="relative z-10">
