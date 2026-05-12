@@ -1163,7 +1163,7 @@ export default function Profile() {
               </button>
             </form>
 
-            <div className="relative">
+            <div className="relative hidden md:block">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-100"></div>
               </div>
@@ -1174,14 +1174,14 @@ export default function Profile() {
 
             <button 
               onClick={() => login()}
-              className="w-full bg-white border border-gray-200 rounded-xl py-3 flex items-center justify-center gap-3 font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
+              className="w-full bg-white border border-gray-200 rounded-xl py-3 hidden md:flex items-center justify-center gap-3 font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
             >
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
               <span className="text-xs">Continue with Google</span>
             </button>
             
             {/* Note for Mobile App Users */}
-            <p className="text-[9px] text-gray-300 font-medium text-center uppercase tracking-tighter italic">
+            <p className="text-[9px] text-gray-300 font-medium text-center uppercase tracking-tighter italic hidden md:block">
               Note: If Google sign-in fails in the app, use email above.
             </p>
 
