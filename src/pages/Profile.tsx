@@ -790,7 +790,7 @@ export default function Profile() {
   );
 
   const renderMain = () => (
-    <div className="animate-in fade-in slide-in-from-bottom-5 duration-700 bg-white min-h-screen">
+    <div className="animate-in fade-in slide-in-from-bottom-5 duration-700 bg-white">
       {/* ── Header ── */}
       <section className="bg-gradient-to-br from-[#ff2a2a] to-[#e8001e] pt-16 pb-20 px-6 relative overflow-hidden">
         {/* Navigation Icons */}
@@ -844,7 +844,7 @@ export default function Profile() {
       </section>
 
       {/* ── Body Body ── */}
-      <div className="bg-white rounded-t-[32px] -mt-8 relative z-20 px-4 pt-8 pb-32">
+      <div className="bg-white rounded-t-[32px] -mt-8 relative z-20 px-4 pt-8 pb-10">
         {/* Promo Banner */}
         <div className="bg-white border-[1.5px] border-gray-100 rounded-3xl p-5 flex items-center gap-4 mb-8 shadow-[0_2px_10px_rgba(0,0,0,0.05)] group">
           <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-[#e8001e] shrink-0 group-hover:scale-110 transition-transform">
@@ -890,7 +890,7 @@ export default function Profile() {
         </div>
 
         {/* Logout Section */}
-        <div className="rounded-3xl border-[1.5px] border-gray-100 overflow-hidden">
+        <div className="rounded-3xl border-[1.5px] border-gray-100 overflow-hidden mb-8">
           <button 
             onClick={() => logout()}
             className="w-full px-5 py-5 flex items-center justify-between group hover:bg-[#fff5f5] transition-colors text-left"
@@ -902,6 +902,12 @@ export default function Profile() {
               <span className="text-[15px] font-bold">Logout</span>
             </div>
           </button>
+        </div>
+
+        {/* Developer Info */}
+        <div className="text-center pb-8 pt-4 pointer-events-none opacity-40">
+          <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.4em] mb-0.5">Developer: Rehan</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider italic">Instagram: i_vnl_01</p>
         </div>
       </div>
     </div>
@@ -999,14 +1005,14 @@ export default function Profile() {
       </main>
 
       {/* Small Legal Footer */}
-      <footer className="py-10 px-4 text-center">
-        <div className="flex gap-4 justify-center mb-4">
-          <ShieldCheck className="text-gray-200" size={16} />
-          <Settings className="text-gray-200" size={16} />
-          <HelpCircle className="text-gray-200" size={16} />
+      <footer className="py-3 px-4 text-center border-t border-gray-50 bg-gray-50/5 shrink-0">
+        <div className="flex gap-4 justify-center mb-1">
+          <ShieldCheck className="text-gray-200" size={12} />
+          <Settings className="text-gray-200" size={12} />
+          <HelpCircle className="text-gray-200" size={12} />
         </div>
-        <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em] italic">Food Junction Premium</p>
-        <p className="text-[9px] font-bold text-gray-200 mt-1 uppercase tracking-widest">Experience redefined dining • v1.4.2</p>
+        <p className="text-[9px] font-black text-gray-200 uppercase tracking-[0.2em] italic">Food Junction Premium</p>
+        <p className="text-[7px] font-bold text-gray-200 mt-0.5 uppercase tracking-tighter">v1.4.2</p>
       </footer>
     </div>
   );
