@@ -555,13 +555,13 @@ export default function Admin() {
                         {c.email?.[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-black text-gray-900 italic tracking-tight text-lg leading-none mb-1">{c.email}</p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">{c.name || 'Anonymous Guest'}</p>
+                        <p className="font-black text-gray-900 italic tracking-tight text-lg leading-none mb-1">{c.displayName || c.name || 'Anonymous Guest'}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">{c.email}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Account Bio</p>
-                       <p className="text-sm font-black text-gray-900 italic tracking-tight">{c.phone || 'No Phone Sync'}</p>
+                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Contact Detail</p>
+                       <p className="text-sm font-black text-gray-900 italic tracking-tight">{c.phone || 'No Phone Link'}</p>
                     </div>
                   </div>
                 ))}

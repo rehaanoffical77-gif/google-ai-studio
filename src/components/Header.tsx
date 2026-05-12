@@ -60,10 +60,10 @@ export default function Header({ onCartClick }: { onCartClick?: () => void }) {
     }
   };
 
-  const ADMIN_EMAIL = 'rehaanoffical77@gmail.com'.toLowerCase();
+  const ADMIN_EMAILS = ['rehaanoffical77@gmail.com', 'capcutrehaan@gmail.com'].map(e => e.toLowerCase());
 
   const menuItems = [
-    ...(user?.email?.toLowerCase() === ADMIN_EMAIL ? [{ icon: LayoutDashboard, label: 'Admin Panel', onClick: () => navigate('/owner') }] : []),
+    ...(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()) ? [{ icon: LayoutDashboard, label: 'Admin Panel', onClick: () => navigate('/owner') }] : []),
     { icon: ClipboardList, label: 'My Orders', onClick: () => navigate('/profile') },
     { icon: Heart, label: 'Favorite Orders', onClick: () => navigate('/profile') },
     { icon: Map, label: 'Address Book', onClick: () => navigate('/profile') },
@@ -178,12 +178,20 @@ export default function Header({ onCartClick }: { onCartClick?: () => void }) {
                 </AnimatePresence>
               </>
             ) : (
-              <button 
-                onClick={login}
-                className="text-gray-900 font-black text-xs md:text-sm hover:text-red-500 transition-colors uppercase tracking-tight"
-              >
-                Login
-              </button>
+              <div className="flex items-center gap-2 md:gap-4">
+                <button 
+                  onClick={() => navigate('/profile', { state: { mode: 'login' } })}
+                  className="text-gray-900 font-extrabold text-[10px] md:text-xs hover:text-red-500 transition-colors uppercase tracking-widest border-r border-gray-100 pr-2 md:pr-4"
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => navigate('/profile', { state: { mode: 'signup' } })}
+                  className="bg-red-500 text-white font-black text-[10px] md:text-xs px-3 md:px-5 py-1.5 md:py-2 rounded-lg hover:bg-red-600 transition-all uppercase tracking-widest shadow-sm shadow-red-100"
+                >
+                  Sign Up
+                </button>
+              </div>
             )}
           </div>
         </div>

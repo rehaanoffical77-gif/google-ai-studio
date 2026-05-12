@@ -52,7 +52,7 @@ service cloud.firestore {
           && (data.deliveryPartnerPhone is string || !('deliveryPartnerPhone' in data));
       }
 
-      allow create: if isVerified() && isValidOrder(incoming());
+      allow create: if isSignedIn() && isValidOrder(incoming());
       
       // Allow admin to list all, users only their own
       allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
@@ -84,7 +84,7 @@ service cloud.firestore {
           && data.city is string && data.city.size() <= 128;
       }
       allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow create: if isVerified() && isValidAddress(incoming());
+      allow create: if isSignedIn() && isValidAddress(incoming());
       allow update: if isSignedIn() && resource.data.userId == request.auth.uid && (isAdmin() || isValidAddress(incoming()));
       allow delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }

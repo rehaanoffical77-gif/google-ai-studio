@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { 
@@ -24,6 +24,7 @@ import {
   HelpCircle,
   Settings,
   LogOut,
+  LogIn,
   Camera,
   CheckCircle2,
   Clock,
@@ -58,9 +59,10 @@ import { cn } from '../lib/utils';
 type View = 'main' | 'orders' | 'addresses' | 'payments' | 'offers' | 'favorites' | 'notifications' | 'billing' | 'support' | 'settings' | 'edit';
 
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, logout, login, loginWithEmail, signupWithEmail, resetPassword, loading: authLoading } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentView, setCurrentView] = useState<View>('main');
   const [orders, setOrders] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<any[]>([]);
@@ -68,6 +70,14 @@ export default function Profile() {
   const [favorites, setFavorites] = useState<any[]>([]);
   const [userData, setUserData] = useState<any>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  
+  // Auth Form States
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPass, setAuthPass] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authPhone, setAuthPhone] = useState('');
+  const [authError, setAuthError] = useState('');
   
   // Settings States
   const [settings, setSettings] = useState({
@@ -133,8 +143,11 @@ export default function Profile() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
-      navigate('/');
+      if (location.state?.mode) {
+        setAuthMode(location.state.mode);
+      }
       return;
     }
 
@@ -190,7 +203,31 @@ export default function Profile() {
       unsubFav();
       unsubUser();
     };
-  }, [user, navigate]);
+  }, [user, navigate, authLoading]);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setIsSaving(true);
+    try {
+      if (authMode === 'login') {
+        await loginWithEmail(authEmail, authPass);
+      } else if (authMode === 'signup') {
+        if (!authName || !authPhone) {
+          throw new Error('Name and Phone are required');
+        }
+        await signupWithEmail(authEmail, authPass, authName, authPhone);
+      } else {
+        await resetPassword(authEmail);
+        alert('Password reset link sent to your email.');
+        setAuthMode('login');
+      }
+    } catch (err: any) {
+      setAuthError(err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleBack = () => {
     if (selectedOrder) setSelectedOrder(null);
@@ -795,8 +832,9 @@ export default function Profile() {
             </button>
           </div>
           <div className="flex-1 text-white">
-            <h2 className="text-2xl font-bold tracking-tight leading-none mb-1.5">{user?.displayName || 'Chirag Patel'}</h2>
-            <p className="text-sm font-bold text-white/90 mb-1.5">{userData?.phone || 'Add phone number'}</p>
+            <h2 className="text-2xl font-bold tracking-tight leading-none mb-1.5">{userData?.displayName || user?.displayName || 'Feast Explorer'}</h2>
+            <p className="text-sm font-bold text-white/90 mb-1">{userData?.email || user?.email}</p>
+            <p className="text-sm font-bold text-white/90 mb-1.5">{userData?.phone || 'No phone linked'}</p>
             <div className="flex items-center gap-1.5 text-white/80">
               <MapPin size={12} />
               <p className="text-[11px] font-bold">Home, Mandamarri</p>
@@ -868,6 +906,18 @@ export default function Profile() {
       </div>
     </div>
   );
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return renderAuth();
+  }
 
   return (
     <div className={cn("min-h-screen bg-white flex flex-col font-sans selection:bg-red-100", settings.darkMode && "dark bg-gray-900")}>
@@ -1008,6 +1058,140 @@ export default function Profile() {
             </div>
           </form>
         </div>
+      </div>
+    );
+  }
+
+  function renderAuth() {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md bg-white rounded-[48px] p-10 shadow-2xl border border-gray-100 space-y-8"
+        >
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-200">
+              <LogIn className="text-white" size={32} />
+            </div>
+            <h2 className="text-3xl font-black text-gray-900 italic uppercase leading-tight">
+              {authMode === 'login' ? 'Welcome Back' : authMode === 'signup' ? 'Join the Feast' : 'Reset Password'}
+            </h2>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-2">
+              {authMode === 'login' ? 'Secure Login Required' : authMode === 'signup' ? 'Create a Royal Account' : 'Recover Your Access'}
+            </p>
+          </div>
+
+          <form onSubmit={handleAuth} className="space-y-4">
+            {authError && (
+              <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-red-500 text-[10px] font-black uppercase text-center italic">
+                {authError}
+              </div>
+            )}
+
+            {authMode === 'signup' && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Full Name</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={authName}
+                    onChange={e => setAuthName(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold shadow-inner focus:bg-white transition-all outline-none" 
+                    placeholder="Enter your name"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Phone Number</label>
+                  <input 
+                    type="tel" 
+                    required
+                    value={authPhone}
+                    onChange={e => setAuthPhone(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold shadow-inner focus:bg-white transition-all outline-none" 
+                    placeholder="+91 99999 88888"
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Email Address</label>
+              <input 
+                type="email" 
+                required
+                value={authEmail}
+                onChange={e => setAuthEmail(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold shadow-inner focus:bg-white transition-all outline-none" 
+                placeholder="rehaan@example.com"
+              />
+            </div>
+
+            {authMode !== 'forgot' && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Password</label>
+                <input 
+                  type="password" 
+                  required
+                  value={authPass}
+                  onChange={e => setAuthPass(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold shadow-inner focus:bg-white transition-all outline-none" 
+                  placeholder="••••••••"
+                />
+              </div>
+            )}
+
+            {authMode === 'login' && (
+              <div className="text-right">
+                <button 
+                  type="button" 
+                  onClick={() => setAuthMode('forgot')}
+                  className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-red-500 transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            )}
+
+            <button 
+              disabled={isSaving}
+              type="submit" 
+              className="w-full bg-gray-900 text-white rounded-3xl py-4 font-black italic text-sm shadow-2xl shadow-gray-900/10 hover:scale-[1.02] active:scale-95 transition-all mt-4 disabled:opacity-50"
+            >
+              {isSaving ? 'PROCESSING...' : authMode === 'login' ? 'SECURE LOGIN' : authMode === 'signup' ? 'CREATE ACCOUNT' : 'SEND RESET LINK'}
+            </button>
+          </form>
+
+          <div className="relative py-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-100"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-4 text-[10px] font-black text-gray-300 uppercase italic">Or continue with</span>
+            </div>
+          </div>
+
+          <button 
+            onClick={() => login()}
+            className="w-full bg-white border border-gray-100 rounded-3xl py-4 flex items-center justify-center gap-3 font-black text-gray-900 shadow-sm hover:bg-gray-50 active:scale-95 transition-all"
+          >
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+            <span className="text-xs uppercase tracking-widest italic font-serif">Sign in with Google</span>
+          </button>
+
+          <div className="text-center pt-6">
+            <button 
+              onClick={() => {
+                setAuthMode(authMode === 'login' ? 'signup' : 'login');
+                setAuthError('');
+              }}
+              className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-900 transition-colors"
+            >
+              {authMode === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Log In"}
+            </button>
+          </div>
+        </motion.div>
       </div>
     );
   }
