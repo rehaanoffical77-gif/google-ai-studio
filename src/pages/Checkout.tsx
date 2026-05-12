@@ -1292,9 +1292,9 @@ export default function Checkout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/30 flex flex-col font-sans">
+    <div className="h-[100dvh] bg-gray-50/30 flex flex-col font-sans overflow-hidden">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-gradient-to-br from-[#FF2B2B] to-[#E31837] z-50 px-4 pt-8 pb-6 shadow-xl lg:px-8">
+      <header className="shrink-0 bg-gradient-to-br from-[#FF2B2B] to-[#E31837] z-50 px-4 pt-8 pb-6 shadow-xl lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="flex items-center gap-4">
             <button 
@@ -1304,7 +1304,7 @@ export default function Checkout() {
                 else if (currentStep === 'tracking' || currentStep === 'confirmation') navigate('/');
                 else navigate('/');
               }} 
-              className="p-1 hover:bg-white/10 rounded-full transition-colors"
+              className="p-2 hover:bg-white/10 rounded-full transition-colors"
             >
               <ChevronLeft size={24} className="text-white" />
             </button>
@@ -1333,14 +1333,14 @@ export default function Checkout() {
                 <React.Fragment key={s.id}>
                   <div className="flex flex-col items-center gap-2 relative z-10">
                     <div className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-500",
+                      "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-500",
                       isActive ? "bg-white text-[#E31837] scale-110 shadow-lg" : 
                       isPast ? "bg-white/40 text-white" : "bg-white/20 text-white/50 border border-white/20"
                     )}>
                       {isPast ? <CheckCircle2 size={14} /> : idx + 1}
                     </div>
                     <span className={cn(
-                      "text-[9px] font-bold transition-colors duration-500 uppercase tracking-wider",
+                      "text-[9px] font-black transition-colors duration-500 uppercase tracking-tighter",
                       isActive ? "text-white" : "text-white/60"
                     )}>{s.label}</span>
                   </div>
@@ -1358,7 +1358,7 @@ export default function Checkout() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 pt-48 lg:pt-56 pb-32 px-4 lg:px-8 w-full">
+      <main className="flex-1 overflow-y-auto no-scrollbar pt-6 pb-40 px-4 lg:px-8 w-full">
         <div className="max-w-7xl mx-auto w-full h-full">
           <div className={cn(
             "h-full w-full",
@@ -1384,7 +1384,7 @@ export default function Checkout() {
 
             {/* Right Sidebar (Bill Details) - Desktop Only */}
             {!(currentStep === 'confirmation' || currentStep === 'tracking' || currentStep === 'processing') && (
-              <aside className="lg:col-span-4 hidden lg:block sticky top-56 space-y-6">
+              <aside className="lg:col-span-4 hidden lg:block sticky top-0 space-y-6">
                 <div className="bg-white rounded-[32px] p-8 shadow-xl border border-gray-100 flex flex-col gap-6">
                   <h3 className="text-xl font-bold text-gray-900 italic tracking-tight">Order Bill</h3>
                   
@@ -1457,7 +1457,7 @@ export default function Checkout() {
       </main>
 
       {/* Footer Info (Desktop) */}
-      <footer className="hidden lg:block fixed bottom-0 left-0 right-0 p-8 text-center text-gray-400 text-[10px] font-black uppercase tracking-[0.3em]">
+      <footer className="hidden lg:block shrink-0 p-8 text-center text-gray-400 text-[10px] font-black uppercase tracking-[0.3em]">
         Safe • Secure • No-Contact Delivery
       </footer>
 

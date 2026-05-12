@@ -920,9 +920,9 @@ export default function Profile() {
   }
 
   return (
-    <div className={cn("min-h-screen bg-white flex flex-col font-sans selection:bg-red-100", settings.darkMode && "dark bg-gray-900")}>
+    <div className={cn("h-[100dvh] bg-white flex flex-col font-sans selection:bg-red-100 overflow-hidden", settings.darkMode && "dark bg-gray-900")}>
       {currentView !== 'main' && (
-        <header className="bg-white/80 backdrop-blur-xl px-4 h-16 md:h-20 flex items-center gap-4 sticky top-0 z-[60] border-b border-gray-50/50 shadow-sm">
+        <header className="shrink-0 bg-white/80 backdrop-blur-xl px-4 h-16 md:h-20 flex items-center gap-4 z-[60] border-b border-gray-50/50 shadow-sm">
           <button onClick={handleBack} className="p-3 bg-gray-50 rounded-2xl hover:bg-red-50 hover:text-red-500 transition-all">
             <ChevronLeft size={24} className="font-bold" />
           </button>
@@ -934,7 +934,7 @@ export default function Profile() {
         </header>
       )}
 
-      <main className={cn("flex-1 w-full relative", currentView !== 'main' && "max-w-4xl mx-auto pb-20")}>
+      <main className={cn("flex-1 w-full relative overflow-y-auto no-scrollbar", currentView !== 'main' && "max-w-4xl mx-auto pb-20")}>
         <AnimatePresence mode="wait">
           {selectedOrder ? (
             <motion.div key="order-detail" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="px-4 py-8 max-w-lg mx-auto">
@@ -1064,137 +1064,144 @@ export default function Profile() {
 
   function renderAuth() {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-white rounded-3xl p-8 md:p-12 shadow-xl border border-gray-100 space-y-8"
-        >
-          <div className="text-center">
-            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-100">
-              <LogIn className="text-white" size={28} />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-              {authMode === 'login' ? 'Sign In' : authMode === 'signup' ? 'Create Account' : 'Reset Password'}
-            </h2>
-            <p className="text-sm text-gray-500 mt-2">
-              {authMode === 'login' ? 'Enter your details to access your account' : authMode === 'signup' ? 'Join us to start ordering your favorite food' : 'Enter your email to receive a reset link'}
-            </p>
-          </div>
-
-          <form onSubmit={handleAuth} className="space-y-5">
-            {authError && (
-              <div className="bg-red-50 p-3 rounded-xl border border-red-100 text-red-600 text-xs font-medium text-center">
-                {authError}
+      <div className="h-[100dvh] bg-gray-50 flex items-center justify-center p-4 overflow-hidden">
+        <div className="w-full h-full max-w-md flex flex-col justify-center overflow-y-auto no-scrollbar py-8">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-8 md:p-12 shadow-xl border border-gray-100 space-y-6"
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-100">
+                <LogIn className="text-white" size={28} />
               </div>
-            )}
-
-            {authMode === 'signup' && (
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-700 ml-1">Full Name</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={authName}
-                    onChange={e => setAuthName(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm transition-all outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500" 
-                    placeholder="John Doe"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-700 ml-1">Phone Number</label>
-                  <input 
-                    type="tel" 
-                    required
-                    value={authPhone}
-                    onChange={e => setAuthPhone(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm transition-all outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500" 
-                    placeholder="+91 99999 88888"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-700 ml-1">Email Address</label>
-              <input 
-                type="email" 
-                required
-                value={authEmail}
-                onChange={e => setAuthEmail(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm transition-all outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500" 
-                placeholder="email@example.com"
-              />
+              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                {authMode === 'login' ? 'Sign In' : authMode === 'signup' ? 'Create Account' : 'Reset Password'}
+              </h2>
+              <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                {authMode === 'login' ? 'Enter your details to access your account' : authMode === 'signup' ? 'Join us to start ordering your favorite food' : 'Enter your email to receive a reset link'}
+              </p>
             </div>
 
-            {authMode !== 'forgot' && (
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center px-1">
-                  <label className="text-xs font-semibold text-gray-700">Password</label>
-                  {authMode === 'login' && (
-                    <button 
-                      type="button" 
-                      onClick={() => setAuthMode('forgot')}
-                      className="text-xs font-medium text-red-500 hover:text-red-600 transition-colors"
-                    >
-                      Forgot?
-                    </button>
-                  )}
+            <form onSubmit={handleAuth} className="space-y-4">
+              {authError && (
+                <div className="bg-red-50 p-3 rounded-xl border border-red-100 text-red-600 text-[10px] font-bold text-center">
+                  {authError}
                 </div>
+              )}
+
+              {authMode === 'signup' && (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Full Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={authName}
+                      onChange={e => setAuthName(e.target.value)}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm transition-all outline-none focus:border-red-500" 
+                      placeholder="John Doe"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      required
+                      value={authPhone}
+                      onChange={e => setAuthPhone(e.target.value)}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm transition-all outline-none focus:border-red-500" 
+                      placeholder="+91 99999 88888"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Email Address</label>
                 <input 
-                  type="password" 
+                  type="email" 
                   required
-                  value={authPass}
-                  onChange={e => setAuthPass(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm transition-all outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500" 
-                  placeholder="••••••••"
+                  value={authEmail}
+                  onChange={e => setAuthEmail(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm transition-all outline-none focus:border-red-500" 
+                  placeholder="email@example.com"
                 />
               </div>
-            )}
 
-            <button 
-              disabled={isSaving}
-              type="submit" 
-              className="w-full bg-red-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-red-600 active:scale-[0.98] transition-all shadow-md shadow-red-100 disabled:opacity-50 mt-2"
-            >
-              {isSaving ? 'Processing...' : authMode === 'login' ? 'Sign In' : authMode === 'signup' ? 'Create Account' : 'Reset Password'}
-            </button>
-          </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-100"></div>
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-white px-4 text-gray-400 font-medium tracking-tight">Or continue with</span>
-            </div>
-          </div>
-
-          <button 
-            onClick={() => login()}
-            className="w-full bg-white border border-gray-200 rounded-xl py-3 flex items-center justify-center gap-3 font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-            <span className="text-sm">Google</span>
-          </button>
-
-          <div className="text-center pt-2">
-            <button 
-              onClick={() => {
-                setAuthMode(authMode === 'login' ? 'signup' : 'login');
-                setAuthError('');
-              }}
-              className="text-sm font-medium text-gray-500 hover:text-red-500 transition-colors"
-            >
-              {authMode === 'login' ? (
-                <>Don't have an account? <span className="text-red-500 underline decoration-red-200 underline-offset-4">Sign Up</span></>
-              ) : (
-                <>Already have an account? <span className="text-red-500 underline decoration-red-200 underline-offset-4">Sign In</span></>
+              {authMode !== 'forgot' && (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Password</label>
+                    {authMode === 'login' && (
+                      <button 
+                        type="button" 
+                        onClick={() => setAuthMode('forgot')}
+                        className="text-[10px] font-bold text-red-500 hover:text-red-600"
+                      >
+                        Forgot?
+                      </button>
+                    )}
+                  </div>
+                  <input 
+                    type="password" 
+                    required
+                    value={authPass}
+                    onChange={e => setAuthPass(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm transition-all outline-none focus:border-red-500" 
+                    placeholder="••••••••"
+                  />
+                </div>
               )}
+
+              <button 
+                disabled={isSaving}
+                type="submit" 
+                className="w-full bg-red-500 text-white rounded-xl py-3 text-sm font-bold hover:bg-red-600 active:scale-[0.98] transition-all shadow-md shadow-red-100 disabled:opacity-50 mt-2"
+              >
+                {isSaving ? 'Processing...' : authMode === 'login' ? 'Sign In' : authMode === 'signup' ? 'Create Account' : 'Reset Password'}
+              </button>
+            </form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-100"></div>
+              </div>
+              <div className="relative flex justify-center text-[10px]">
+                <span className="bg-white px-3 text-gray-400 font-bold tracking-tight">OR</span>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => login()}
+              className="w-full bg-white border border-gray-200 rounded-xl py-3 flex items-center justify-center gap-3 font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
+              <span className="text-xs">Continue with Google</span>
             </button>
-          </div>
-        </motion.div>
+            
+            {/* Note for Mobile App Users */}
+            <p className="text-[9px] text-gray-300 font-medium text-center uppercase tracking-tighter italic">
+              Note: If Google sign-in fails in the app, use email above.
+            </p>
+
+            <div className="text-center">
+              <button 
+                onClick={() => {
+                  setAuthMode(authMode === 'login' ? 'signup' : 'login');
+                  setAuthError('');
+                }}
+                className="text-xs font-semibold text-gray-500 hover:text-red-500 transition-colors"
+              >
+                {authMode === 'login' ? (
+                  <>Don't have an account? <span className="text-red-500 underline decoration-red-200 underline-offset-4">Sign Up</span></>
+                ) : (
+                  <>Already have an account? <span className="text-red-500 underline decoration-red-200 underline-offset-4">Sign In</span></>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
       </div>
     );
   }
