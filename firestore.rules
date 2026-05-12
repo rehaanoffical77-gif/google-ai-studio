@@ -37,7 +37,7 @@ service cloud.firestore {
     // Orders: User can create their own, read their own. Admin can manage all.
     match /orders/{orderId} {
       function isValidOrder(data) {
-        return (get(/databases/$(database)/documents/settings/config).data.isOpen == true)
+        return (!exists(/databases/$(database)/documents/settings/config) || get(/databases/$(database)/documents/settings/config).data.isOpen == true)
           && data.userId == request.auth.uid 
           && (data.userEmail == request.auth.token.email || data.userEmail == null)
           && data.items is list 
@@ -55,8 +55,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidOrder(incoming());
       
       // Allow admin to list all, users only their own
-      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || (resource != null && resource.data.userId == request.auth.uid));
+      allow get: if isSignedIn() && (isAdmin() || (resource != null && resource.data.userId == request.auth.uid));
       
       allow update: if isSignedIn() && (
         isAdmin() || 

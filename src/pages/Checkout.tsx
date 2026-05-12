@@ -66,7 +66,8 @@ export default function Checkout() {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
-  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [selectedPayment, setSelectedPayment] = useState<any>('cod');
+  const [isCOD, setIsCOD] = useState(true);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderData, setOrderData] = useState<any>(null);
   const [promoCode, setPromoCode] = useState('');
@@ -103,7 +104,7 @@ export default function Checkout() {
     e.preventDefault();
     if (!user || !validateAddress()) return;
     try {
-      await addDoc(collection(db, 'addresses',), {
+      await addDoc(collection(db, 'addresses'), {
         userId: user.uid,
         ...addressForm,
         isDefault: false,
@@ -338,8 +339,6 @@ export default function Checkout() {
     </div>
   );
 
-  const [isCOD, setIsCOD] = useState(false);
-
   // Render Helpers
   const [isCouponOpen, setIsCouponOpen] = useState(false);
   const PACKAGING_FEE = 20;
@@ -348,51 +347,43 @@ export default function Checkout() {
     <motion.div 
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="space-y-4"
+      className="space-y-3"
     >
       {/* Items Section */}
-      <div className="bg-white rounded-[24px] p-4 sm:p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] border border-gray-50">
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-red-50 text-[#E31837] rounded-lg">
-              <ShoppingBag size={18} />
+            <div className="p-1.5 bg-red-50 text-[#E31837] rounded-lg">
+              <ShoppingBag size={16} />
             </div>
-            <h3 className="font-bold text-gray-900 text-sm sm:text-base">Your Items ({items.length})</h3>
+            <h3 className="font-bold text-gray-900 text-sm">Items ({items.length})</h3>
           </div>
           <button 
             onClick={() => navigate('/')}
-            className="text-[#E31837] text-[13px] font-bold flex items-center gap-1 italic"
+            className="text-[#E31837] text-[11px] font-bold italic"
           >
-            Edit Cart <Pencil size={14} />
+            Edit
           </button>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-4">
           {items.map((item) => (
-            <div key={item.id} className="flex gap-3 sm:gap-6 items-center p-3 sm:p-4 lg:p-6 lg:hover:bg-gray-50 rounded-3xl transition-colors">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-2xl overflow-hidden shadow-md shrink-0 ring-2 sm:ring-4 ring-white">
+            <div key={item.id} className="flex gap-3 items-center">
+              <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm shrink-0">
                 <img src={item.image || null} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
-              <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h4 className="font-serif text-base sm:text-lg lg:text-xl text-gray-900 leading-tight italic truncate">{item.name}</h4>
-                    <p className="text-[10px] lg:text-xs text-gray-400 font-medium leading-relaxed mt-1 italic line-clamp-2">Slow-cooked and seasoned with authentic spices.</p>
-                  </div>
-                  <div className="w-4 h-4 border border-green-600 p-0.5 flex items-center justify-center shrink-0">
-                    <div className="w-full h-full bg-green-600 rounded-full" />
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs text-gray-900 truncate italic">{item.name}</h4>
+                  <span className="font-black text-xs text-gray-900 italic">₹{item.price * item.quantity}</span>
                 </div>
-                <div className="flex items-center justify-between mt-3 sm:mt-4 gap-2 flex-wrap sm:flex-nowrap">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <span className="font-bold text-gray-900 italic text-sm sm:text-base lg:text-lg">₹{item.price}</span>
-                    <div className="flex items-center gap-2 sm:gap-4 bg-white border border-gray-100 rounded-xl px-2 sm:px-4 py-1 sm:py-1.5 shadow-sm">
-                      <button onClick={() => updateQuantity(item.id, -1)} className="text-[#E31837] font-black text-base sm:text-lg">-</button>
-                      <span className="text-xs sm:text-sm font-black w-4 sm:w-6 text-center">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.id, 1)} className="text-[#E31837] font-black text-base sm:text-lg">+</button>
-                    </div>
+                <div className="flex items-center justify-between mt-1">
+                  <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-0.5">
+                    <button onClick={() => updateQuantity(item.id, -1)} className="text-[#E31837] font-black text-sm">-</button>
+                    <span className="text-[10px] font-black w-3 text-center">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.id, 1)} className="text-[#E31837] font-black text-sm">+</button>
                   </div>
-                  <span className="font-black text-gray-900 italic text-base sm:text-lg shadow-sm px-2 sm:px-3 py-1 bg-gray-50 rounded-lg lg:bg-transparent whitespace-nowrap">₹{item.price * item.quantity}</span>
+                  <span className="text-[10px] text-gray-400 font-bold italic">₹{item.price} each</span>
                 </div>
               </div>
             </div>
@@ -435,63 +426,41 @@ export default function Checkout() {
       </div>
 
       {/* Bill Details Section */}
-      <div className="bg-white rounded-[24px] p-4 sm:p-6 shadow-[0_2px_15px_rgba(0,0,0,0.03)] border border-gray-50 space-y-3 sm:space-y-4">
-        <div className="flex justify-between items-center text-[12px] sm:text-[13px] font-medium text-gray-600">
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50 space-y-2">
+        <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-tight">
           <span>Subtotal</span>
-          <span>₹{subtotal.toFixed(2)}</span>
+          <span className="text-gray-800">₹{subtotal.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between items-center text-[12px] sm:text-[13px] font-medium text-gray-600">
-          <div className="flex items-center gap-1">
-            <span>Restaurant Packaging</span>
-          </div>
-          <span>₹{PACKAGING_FEE.toFixed(2)}</span>
+        <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+          <span>Packaging & Delivery</span>
+          <span className="text-gray-800">₹{(PACKAGING_FEE + DELIVERY_FEE).toFixed(2)}</span>
         </div>
-        <div className="flex justify-between items-center text-[12px] sm:text-[13px] font-medium text-gray-600">
-          <div className="flex items-center gap-1">
-            <span>Delivery Fee</span>
-          </div>
-          <span>₹{DELIVERY_FEE.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between items-center text-[12px] sm:text-[13px] font-medium text-gray-600">
-          <div className="flex items-center gap-1">
-            <span>Taxes & Charges</span>
-          </div>
-          <span>₹{tax.toFixed(2)}</span>
+        <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+          <span>Taxes (5%)</span>
+          <span className="text-gray-800">₹{tax.toFixed(2)}</span>
         </div>
 
         {couponApplied && (
-          <div className="bg-green-50 rounded-xl p-3 flex justify-between items-center text-green-700 text-[13px] font-black italic">
-            <div className="flex items-center gap-2">
-               <span className="text-lg">🌿</span>
-               <span>You Save</span>
-            </div>
+          <div className="bg-green-50 rounded-xl p-2 flex justify-between items-center text-green-700 text-[10px] font-black italic">
+            <span>Coupon Discount</span>
             <span>-₹{(VALID_COUPONS[promoCode] || 50).toFixed(2)}</span>
           </div>
         )}
 
-        <div className="h-px border-t border-dashed border-red-200 my-2" />
+        <div className="h-px border-t border-dashed border-gray-100 my-1" />
 
-        <div className="flex justify-between items-start">
-          <div className="space-y-0.5">
-            <h5 className="font-bold text-gray-900 italic text-base">To Pay</h5>
-            <p className="text-[10px] text-gray-400 font-medium italic">(Inclusive of all taxes)</p>
-          </div>
-          <span className="text-xl font-black text-[#E31837] italic">₹{(finalTotal + PACKAGING_FEE).toFixed(2)}</span>
+        <div className="flex justify-between items-center">
+          <h5 className="font-black text-gray-900 italic text-sm">To Pay</h5>
+          <span className="text-lg font-black text-[#E31837] italic">₹{(finalTotal + PACKAGING_FEE).toFixed(2)}</span>
         </div>
       </div>
 
       {/* Delivery Hint */}
-      <div className="bg-white rounded-[24px] p-4 shadow-[0_2px_15px_rgba(0,0,0,0.03)] border border-gray-50 flex items-center justify-between">
+      <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-50 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-red-50 text-[#E31837] rounded-xl flex items-center justify-center">
-            <Clock size={20} />
-          </div>
-          <div>
-            <p className="text-[12px] font-bold text-gray-900 italic">Estimated Delivery</p>
-            <p className="text-[12px] font-bold text-[#E31837] italic">25 - 35 mins</p>
-          </div>
+          <Clock size={16} className="text-[#E31837]" />
+          <p className="text-[11px] font-bold text-gray-900 italic">Delivery in <span className="text-[#E31837]">25-35 mins</span></p>
         </div>
-        <ChevronDown size={20} className="text-gray-300" />
       </div>
 
       {/* Main Action Button (Mobile Only) */}
@@ -800,43 +769,9 @@ export default function Checkout() {
         <div className="flex-1 overflow-y-auto no-scrollbar space-y-4">
           <h3 className="text-base font-bold text-[#0D1B2A] italic px-2">Payment Method</h3>
           <div className="space-y-4">
-            <div className="bg-white rounded-3xl border border-gray-100 divide-y divide-gray-50 shadow-md overflow-hidden">
-              {[
-                { id: 'googlepay', name: 'Google Pay', sub: 'Safe via NPCI', icon: <Smartphone size={18} className="text-blue-500" /> },
-                { id: 'phonepe', name: 'PhonePe', sub: 'Instant pay', icon: <Smartphone size={18} className="text-purple-600" /> },
-                { id: 'paytm', name: 'Paytm', sub: 'Fast checkout', icon: <Smartphone size={18} className="text-sky-400" /> }
-              ].map((method) => (
-                <button 
-                  key={method.id} 
-                  onClick={() => { setSelectedPayment(method.id); setIsCOD(false); }}
-                  className="w-full p-5 flex items-center justify-between active:bg-gray-50 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100">
-                      {method.icon}
-                    </div>
-                    <div className="text-left leading-tight">
-                      <p className="text-sm font-bold text-gray-800">{method.name}</p>
-                      <p className="text-[10px] text-gray-400 italic">{method.sub}</p>
-                    </div>
-                  </div>
-                  <div className={cn(
-                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                    selectedPayment === method.id ? "border-[#E31837]" : "border-gray-200"
-                  )}>
-                    {selectedPayment === method.id && <div className="w-2.5 h-2.5 bg-[#E31837] rounded-full" />}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <button 
-              onClick={() => { setIsCOD(true); setSelectedPayment('cod'); }}
-              className={cn(
-                "w-full p-5 rounded-3xl border flex items-center justify-between shadow-md transition-all",
-                isCOD ? "bg-red-50/50 border-red-100" : "bg-white border-gray-100"
-              )}
-            >
+            <div className={cn(
+              "p-5 rounded-3xl border flex items-center justify-between shadow-md bg-red-50/50 border-red-100"
+            )}>
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center border border-green-100">
                   <Banknote size={20} className="text-green-600" />
@@ -846,13 +781,10 @@ export default function Checkout() {
                   <p className="text-[10px] text-gray-400 italic">Pay at doorstep</p>
                 </div>
               </div>
-              <div className={cn(
-                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                isCOD ? "border-[#E31837]" : "border-gray-200"
-              )}>
-                {isCOD && <div className="w-2.5 h-2.5 bg-[#E31837] rounded-full" />}
+              <div className="w-5 h-5 rounded-full border-2 border-[#E31837] flex items-center justify-center">
+                <div className="w-2.5 h-2.5 bg-[#E31837] rounded-full" />
               </div>
-            </button>
+            </div>
           </div>
         </div>
 
