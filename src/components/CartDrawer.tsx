@@ -63,7 +63,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                     </div>
                     <div>
                       <h3 className="text-xl font-black text-gray-900 italic tracking-tighter uppercase mb-2">Login Required</h3>
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-widest leading-relaxed">Please sign in to your account to place your royal feast order.</p>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-widest leading-relaxed">Please sign in to your account to place your order from Food Junction.</p>
                     </div>
                     <div className="flex flex-col gap-3">
                       <button 
