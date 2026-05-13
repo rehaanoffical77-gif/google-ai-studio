@@ -64,7 +64,10 @@ export default function FoodCard({ item }: any) {
       initial={{ opacity: 0, y: 15 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="group bg-white rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 flex md:flex-col h-full relative"
+      className={cn(
+        "group bg-white rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 flex md:flex-col h-full relative",
+        item.isAvailable === false && "opacity-75 grayscale-[0.5]"
+      )}
     >
       <div className="relative w-32 h-32 md:w-full md:aspect-[4/3] shrink-0 overflow-hidden">
         <img 
@@ -77,6 +80,14 @@ export default function FoodCard({ item }: any) {
           {item.rating} <Star size={10} fill="currentColor" />
         </div>
         
+        {item.isAvailable === false && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
+            <span className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest shadow-xl">
+              Sold Out
+            </span>
+          </div>
+        )}
+
         {/* Favorite Button */}
         <button 
           onClick={toggleFavorite}
@@ -105,25 +116,43 @@ export default function FoodCard({ item }: any) {
           <div className="relative">
             {!cartItem ? (
               <button 
-                onClick={() => addToCart(item)}
-                className="bg-white text-green-600 border border-gray-200 px-4 md:px-6 py-1 md:py-1.5 rounded-lg font-black shadow-sm hover:bg-gray-50 transition-colors uppercase text-[10px] md:text-sm"
+                onClick={() => item.isAvailable !== false && addToCart(item)}
+                disabled={item.isAvailable === false}
+                className={cn(
+                  "px-4 md:px-6 py-1 md:py-1.5 rounded-lg font-black shadow-sm transition-colors uppercase text-[10px] md:text-sm border",
+                  item.isAvailable === false 
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" 
+                    : "bg-white text-green-600 border-gray-200 hover:bg-gray-50"
+                )}
               >
-                Add
+                {item.isAvailable === false ? 'Out' : 'Add'}
               </button>
             ) : (
-              <div className="flex items-center gap-2 md:gap-3 bg-white border border-green-600 rounded-lg px-1.5 md:px-2 py-0.5 md:py-1 shadow-sm">
+              <div className={cn(
+                "flex items-center gap-2 md:gap-3 bg-white border rounded-lg px-1.5 md:px-2 py-0.5 md:py-1 shadow-sm",
+                item.isAvailable === false ? "border-gray-200" : "border-green-600"
+              )}>
                 <button 
                   onClick={() => updateQuantity(item.id, -1)}
-                  className="text-green-600 hover:bg-green-50 rounded p-0.5 md:p-1"
+                  className={cn(
+                    "rounded p-0.5 md:p-1",
+                    item.isAvailable === false ? "text-gray-300 pointer-events-none" : "text-green-600 hover:bg-green-50"
+                  )}
                 >
                   <Minus size={14} className="md:w-4 md:h-4" />
                 </button>
-                <span className="font-black text-green-600 min-w-[16px] md:min-w-[20px] text-center text-xs md:text-base">
+                <span className={cn(
+                  "font-black min-w-[16px] md:min-w-[20px] text-center text-xs md:text-base",
+                  item.isAvailable === false ? "text-gray-400" : "text-green-600"
+                )}>
                   {cartItem.quantity}
                 </span>
                 <button 
-                  onClick={() => updateQuantity(item.id, 1)}
-                  className="text-green-600 hover:bg-green-50 rounded p-0.5 md:p-1"
+                  onClick={() => item.isAvailable !== false && updateQuantity(item.id, 1)}
+                  className={cn(
+                    "rounded p-0.5 md:p-1",
+                    item.isAvailable === false ? "text-gray-300 pointer-events-none" : "text-green-600 hover:bg-green-50"
+                  )}
                 >
                   <Plus size={14} className="md:w-4 md:h-4" />
                 </button>

@@ -35,6 +35,11 @@ export default function Home() {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           item.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
+  }).sort((a, b) => {
+    // Available items first
+    if (a.isAvailable !== false && b.isAvailable === false) return -1;
+    if (a.isAvailable === false && b.isAvailable !== false) return 1;
+    return 0;
   });
 
   return (

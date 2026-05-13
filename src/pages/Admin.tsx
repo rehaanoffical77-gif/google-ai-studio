@@ -25,7 +25,8 @@ import {
   ChevronRight,
   Utensils,
   Lock,
-  Trash2
+  Trash2,
+  Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -85,39 +86,33 @@ export default function Admin() {
       return;
     }
 
-    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
+    const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    const unsubOrders = onSnapshot(qOrders, (snap) => {
       setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
-    }, (error) => {
-      console.error("Orders Listener Error:", error);
-      setLoading(false);
     });
-    return unsub;
-  }, [user, authLoading, navigate]);
 
-  useEffect(() => {
-    if (activeTab === 'menu') {
-      const unsub = onSnapshot(collection(db, 'menu'), (snap) => {
-        setMenuItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      });
-      return unsub;
-    }
-    if (activeTab === 'customers') {
-      const unsub = onSnapshot(collection(db, 'users'), (snap) => {
-        setCustomers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      });
-      return unsub;
-    }
-    if (activeTab === 'settings') {
-      const unsub = onSnapshot(doc(db, 'settings', 'config'), (snap) => {
-        if (snap.exists()) {
-          setIsRestaurantOpen(snap.data().isOpen);
-        }
-      });
-      return unsub;
-    }
-  }, [activeTab]);
+    const unsubMenu = onSnapshot(collection(db, 'menu'), (snap) => {
+      setMenuItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
+      setCustomers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'config'), (snap) => {
+      if (snap.exists()) {
+        setIsRestaurantOpen(snap.data().isOpen);
+      }
+    });
+
+    return () => {
+      unsubOrders();
+      unsubMenu();
+      unsubUsers();
+      unsubSettings();
+    };
+  }, [user, authLoading]);
 
   const toggleRestaurantStatus = async () => {
     try {
@@ -126,6 +121,21 @@ export default function Admin() {
       // If doc doesn't exist, set it
       const { setDoc } = await import('firebase/firestore');
       await setDoc(doc(db, 'settings', 'config'), { isOpen: !isRestaurantOpen });
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 800000) {
+        alert("Image size too large. Please select an image under 800KB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewMenuItem({ ...newMenuItem, image: reader.result as string });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -317,10 +327,10 @@ export default function Admin() {
               {/* Stats Bento Grid */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
-                  { label: 'Active', value: orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length, icon: Clock, color: 'text-orange-500', bg: 'bg-orange-500/5' },
-                  { label: 'Revenue', value: '₹' + orders.reduce((acc, o) => acc + (o.total || 0), 0).toFixed(0), icon: ShoppingBag, color: 'text-blue-500', bg: 'bg-blue-500/5' },
-                  { label: 'Completed', value: orders.filter(o => o.status === 'delivered').length, icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-500/5' },
-                  { label: 'Cancelled', value: orders.filter(o => o.status === 'cancelled').length, icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/5' },
+                  { label: 'Active Orders', value: orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length, icon: Clock, color: 'text-orange-500', bg: 'bg-orange-500/5' },
+                  { label: 'Today Revenue', value: '₹' + orders.reduce((acc, o) => acc + (o.total || 0), 0).toFixed(0), icon: ShoppingBag, color: 'text-blue-500', bg: 'bg-blue-500/5' },
+                  { label: 'Sold Out Items', value: menuItems.filter(i => i.isAvailable === false).length, icon: Utensils, color: 'text-red-600', bg: 'bg-red-600/5' },
+                  { label: 'VIP Customers', value: customers.length, icon: Users, color: 'text-green-500', bg: 'bg-green-500/5' },
                 ].map((stat, i) => (
                   <div key={i} className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] group hover:shadow-xl hover:shadow-red-500/5 transition-all">
                     <div className={`p-3 w-fit rounded-2xl mb-5 transition-transform group-hover:scale-110 ${stat.bg} ${stat.color}`}>
@@ -746,14 +756,34 @@ export default function Admin() {
                   </div>
 
                   <div className="space-y-1">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Visual Asset URL</label>
-                     <input 
-                       type="text" 
-                       className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3.5 font-bold outline-none focus:bg-white transition-all shadow-inner"
-                       placeholder="https://images.unsplash.com/..."
-                       value={newMenuItem.image}
-                       onChange={e => setNewMenuItem({...newMenuItem, image: e.target.value})}
-                     />
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Dish Illustration</label>
+                     <div className="flex items-center gap-5 bg-gray-50 border border-gray-100 rounded-3xl p-5 shadow-inner">
+                       <div className="w-24 h-24 rounded-2xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden shadow-sm shrink-0">
+                         {newMenuItem.image ? (
+                           <img src={newMenuItem.image} alt="Preview" className="w-full h-full object-cover" />
+                         ) : (
+                           <Upload size={32} className="text-gray-200" />
+                         )}
+                       </div>
+                       <div className="flex-1 space-y-3">
+                         <p className="text-[10px] font-bold text-gray-400 leading-tight italic">
+                           Directly upload a photo from your clinical device. Recommended size: under 800KB.
+                         </p>
+                         <input 
+                           type="file" 
+                           accept="image/*"
+                           id="dish-upload"
+                           className="hidden"
+                           onChange={handleImageUpload}
+                         />
+                         <label 
+                           htmlFor="dish-upload"
+                           className="inline-block bg-gray-900 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-lg shadow-gray-900/10"
+                         >
+                           {newMenuItem.image ? 'Change Asset' : 'Select File'}
+                         </label>
+                       </div>
+                     </div>
                   </div>
 
                   <div className="space-y-1">
