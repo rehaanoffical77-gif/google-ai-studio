@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 interface AuthContextType {
@@ -7,6 +7,7 @@ interface AuthContextType {
   isAdmin: boolean;
   loading: boolean;
   login: () => Promise<void>;
+  loginWithRedirect: () => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   signupWithEmail: (email: string, pass: string, name: string, phone: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -25,10 +26,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
       if (user) {
         try {
-          const { doc, getDoc } = await import('firebase/firestore');
+          const { doc, getDoc, setDoc } = await import('firebase/firestore');
           const { db } = await import('../lib/firebase');
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const userData = userDoc.data();
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          let userData = userDoc.data();
+          if (!userDoc.exists()) {
+            userData = {
+              email: user.email,
+              displayName: user.displayName,
+              photoURL: user.photoURL,
+              createdAt: new Date(),
+              role: 'user'
+            };
+            await setDoc(userDocRef, userData);
+          }
           
           // Check for hardcoded admin emails or 'admin' role
           const adminEmails = ['rehaanoffical77@gmail.com', 'capcutrehaan@gmail.com', 'rehaanhacker4@gmai.com'];
@@ -47,25 +60,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      
-      // Save initial user data if new
-      const { doc, getDoc, setDoc } = await import('firebase/firestore');
-      const { db } = await import('../lib/firebase');
-      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
-      if (!userDoc.exists()) {
-        await setDoc(doc(db, 'users', result.user.uid), {
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
-          createdAt: new Date(),
-          role: 'user'
-        });
-      }
+      await signInWithPopup(auth, provider);
     } catch (error: any) {
       if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
         return;
       }
+      throw error;
+    }
+  };
+
+  const loginWithRedirect = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithRedirect(auth, provider);
+    } catch (error: any) {
       throw error;
     }
   };
@@ -106,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin,
       loading, 
       login, 
+      loginWithRedirect,
       loginWithEmail, 
       signupWithEmail, 
       resetPassword, 
