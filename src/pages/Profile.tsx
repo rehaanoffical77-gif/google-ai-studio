@@ -59,11 +59,23 @@ import { cn } from '../lib/utils';
 type View = 'main' | 'orders' | 'addresses' | 'payments' | 'offers' | 'favorites' | 'notifications' | 'billing' | 'support' | 'settings' | 'edit';
 
 export default function Profile() {
-  const { user, logout, login, loginWithRedirect, loginWithEmail, signupWithEmail, resetPassword, loading: authLoading } = useAuth();
+  const { user, logout, login, loginWithRedirect, loginWithEmail, signupWithEmail, resetPassword, loading: authLoading, redirectError, setRedirectError } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const [currentView, setCurrentView] = useState<View>('main');
+  
+  useEffect(() => {
+    if (redirectError) {
+      if (redirectError === 'auth/unauthorized-domain' || redirectError.includes('unauthorized-domain')) {
+        setShowDomainHelp(true);
+      } else {
+        setAuthError(redirectError);
+      }
+      setRedirectError(null);
+    }
+  }, [redirectError, setRedirectError]);
+
   const [orders, setOrders] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);

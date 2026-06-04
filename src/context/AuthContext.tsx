@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut, getRedirectResult } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 interface AuthContextType {
@@ -12,6 +12,8 @@ interface AuthContextType {
   signupWithEmail: (email: string, pass: string, name: string, phone: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+  redirectError: string | null;
+  setRedirectError: (err: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,6 +22,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [redirectError, setRedirectError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          console.log("Successfully logged in via redirect:", result.user);
+        }
+      })
+      .catch((error) => {
+        console.error("Firebase auth redirect error:", error);
+        setRedirectError(error.code || error.message);
+      });
+  }, []);
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (user) => {
@@ -136,7 +152,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loginWithEmail, 
       signupWithEmail, 
       resetPassword, 
-      logout 
+      logout,
+      redirectError,
+      setRedirectError
     }}>
       {children}
     </AuthContext.Provider>
