@@ -1187,7 +1187,7 @@ export default function Profile() {
                   try {
                     await login();
                   } catch (err: any) {
-                    console.error("Google popup error:", err);
+                    console.error("Google login error:", err);
                     if (err.code === 'auth/unauthorized-domain' || err.message?.includes('unauthorized-domain')) {
                       setShowDomainHelp(true);
                     } else {
@@ -1198,39 +1198,8 @@ export default function Profile() {
                 className="w-full bg-white border border-gray-200 rounded-xl py-3 flex items-center justify-center gap-3 font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
               >
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
-                <span className="text-xs">Continue with Google (Popup)</span>
+                <span className="text-xs">Continue with Google</span>
               </button>
-
-              <button 
-                type="button"
-                onClick={async () => {
-                  setAuthError('');
-                  try {
-                    await loginWithRedirect();
-                  } catch (err: any) {
-                    console.error("Google redirect error:", err);
-                    if (err.code === 'auth/unauthorized-domain' || err.message?.includes('unauthorized-domain')) {
-                      setShowDomainHelp(true);
-                    } else {
-                      setAuthError(err.message || String(err));
-                    }
-                  }
-                }}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 flex items-center justify-center gap-3 font-semibold text-slate-600 hover:bg-slate-100 active:scale-[0.98] transition-all"
-              >
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-3.5 h-3.5 opacity-80" />
-                <span className="text-[11px]">Continue with Google (Redirect Method)</span>
-              </button>
-            </div>
-            
-            {/* Note for Mobile App / In-App Users */}
-            <div className="bg-amber-50/50 rounded-xl p-3 border border-amber-100/50 text-center space-y-1">
-              <p className="text-[9px] text-amber-600 font-extrabold uppercase tracking-wider leading-none">
-                👉 Are you on Instagram / WhatsApp?
-              </p>
-              <p className="text-[9px] text-slate-500 font-bold leading-normal">
-                Standard popups are blocked inside in-app browsers. Use the <span className="text-indigo-600 font-extrabold">Redirect Method</span> button above, or log in with your email.
-              </p>
             </div>
 
             <div className="text-center">

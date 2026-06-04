@@ -60,11 +60,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (error: any) {
-      if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-        return;
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isInAppBrowser = /FBAN|FBAV|Instagram|Twitter|Line|WhatsApp/i.test(navigator.userAgent);
+
+      if (isMobile || isInAppBrowser) {
+        await signInWithRedirect(auth, provider);
+      } else {
+        try {
+          await signInWithPopup(auth, provider);
+        } catch (innerError: any) {
+          if (innerError.code === 'auth/cancelled-popup-request' || innerError.code === 'auth/popup-closed-by-user') {
+            return;
+          }
+          if (innerError.code === 'auth/popup-blocked') {
+            await signInWithRedirect(auth, provider);
+            return;
+          }
+          throw innerError;
+        }
       }
+    } catch (error: any) {
       throw error;
     }
   };
@@ -72,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithRedirect = async () => {
     try {
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithRedirect(auth, provider);
     } catch (error: any) {
       throw error;
