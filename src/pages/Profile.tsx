@@ -78,6 +78,7 @@ export default function Profile() {
   const [authName, setAuthName] = useState('');
   const [authPhone, setAuthPhone] = useState('');
   const [authError, setAuthError] = useState('');
+  const [showDomainHelp, setShowDomainHelp] = useState(false);
   
   // Settings States
   const [settings, setSettings] = useState({
@@ -797,15 +798,15 @@ export default function Profile() {
         <div className="absolute top-5 left-5 right-5 flex items-center justify-between z-30">
           <button 
             onClick={() => navigate('/')}
-            className="w-10 h-10 flex items-center justify-center text-white/90 hover:text-white transition-colors"
+            className="w-10 h-10 flex items-center justify-center text-white/90 hover:text-white transition-colors bg-white/10 rounded-xl"
           >
-            <ChevronLeft size={28} strokeWidth={1.5} />
+            <ChevronLeft size={24} strokeWidth={2} />
           </button>
           <button 
             onClick={() => setCurrentView('settings')}
-            className="w-10 h-10 flex items-center justify-center text-white/90 hover:text-white transition-colors"
+            className="w-10 h-10 flex items-center justify-center text-white/90 hover:text-white transition-colors bg-white/10 rounded-xl"
           >
-            <Settings size={28} strokeWidth={1.5} />
+            <Settings size={22} strokeWidth={2} />
           </button>
         </div>
 
@@ -928,59 +929,60 @@ export default function Profile() {
   return (
     <div className={cn("h-[100dvh] bg-white flex flex-col font-sans selection:bg-red-100 overflow-hidden", settings.darkMode && "dark bg-gray-900")}>
       {currentView !== 'main' && (
-        <header className="shrink-0 bg-white/80 backdrop-blur-xl px-4 h-16 md:h-20 flex items-center gap-4 z-[60] border-b border-gray-50/50 shadow-sm">
-          <button onClick={handleBack} className="p-3 bg-gray-50 rounded-2xl hover:bg-red-50 hover:text-red-500 transition-all">
-            <ChevronLeft size={24} className="font-bold" />
+        <header className="shrink-0 bg-white/80 backdrop-blur-xl px-4 h-14 md:h-16 flex items-center gap-4 z-[60] border-b border-gray-50/50 shadow-sm transition-all">
+          <button onClick={handleBack} className="p-2.5 bg-gray-50 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all active:scale-95">
+            <ChevronLeft size={20} className="font-bold" />
           </button>
           <div className="flex-1">
-            <h1 className="text-xl font-serif tracking-tight capitalize italic text-gray-900">
-              {selectedOrder ? 'Order Detail' : currentView.replace('main', 'Profile Center')}
+            <h1 className="text-lg font-black tracking-tight capitalize italic text-gray-900 truncate">
+              {selectedOrder ? 'Order Details' : currentView.replace(/-/g, ' ')}
             </h1>
           </div>
         </header>
       )}
 
-      <main className={cn("flex-1 w-full relative overflow-y-auto no-scrollbar", currentView !== 'main' && "max-w-4xl mx-auto pb-20")}>
+      <main className={cn("flex-1 w-full relative overflow-y-auto no-scrollbar pt-2", currentView !== 'main' && "max-w-4xl mx-auto")}>
         <AnimatePresence mode="wait">
           {selectedOrder ? (
-            <motion.div key="order-detail" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="px-4 py-8 max-w-lg mx-auto">
-              <div className="bg-white rounded-[40px] p-8 shadow-2xl border border-gray-100 space-y-8 relative overflow-hidden">
+            <motion.div key="order-detail" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="px-4 py-6 max-w-lg mx-auto">
+              {/* Order Detail View */}
+              <div className="bg-white rounded-[32px] p-6 shadow-2xl border border-gray-100 space-y-6 relative overflow-hidden">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-2xl font-black text-gray-900 italic tracking-tight">Order Receipt</h3>
-                    <p className="text-[11px] text-gray-400 font-bold uppercase mt-2 tracking-widest">ID: {selectedOrder.id.toUpperCase()}</p>
+                    <h3 className="text-xl font-black text-gray-900 italic tracking-tight uppercase">Order Receipt</h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 tracking-widest leading-none">#{selectedOrder.id.slice(-8).toUpperCase()}</p>
                   </div>
-                  <div className="bg-green-50 px-4 py-1.5 rounded-2xl text-[10px] font-black text-green-600 uppercase border border-green-100">
+                  <div className="bg-green-50 px-3 py-1 rounded-full text-[9px] font-black text-green-600 uppercase border border-green-100 italic">
                     {selectedOrder.status}
                   </div>
                 </div>
-                <div className="space-y-5">
+                <div className="space-y-4">
                   {selectedOrder.items.map((item: any, idx: number) => (
                     <div key={idx} className="flex justify-between items-center group">
-                      <div className="flex gap-4 items-center">
-                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-xs font-black text-gray-400 group-hover:bg-red-50 group-hover:text-red-500 transition-all">
+                      <div className="flex gap-3 items-center">
+                        <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-[10px] font-black text-gray-400 group-hover:bg-red-50 group-hover:text-red-500 transition-all">
                           {item.quantity}x
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900 text-sm">{item.name}</p>
-                          <p className="text-[10px] text-gray-400 font-bold">Standard Portion</p>
+                          <p className="font-black text-gray-900 text-xs italic">{item.name}</p>
+                          <p className="text-[9px] text-gray-400 font-bold">Base Price: ₹{item.price}</p>
                         </div>
                       </div>
-                      <span className="font-black text-gray-900 text-sm">₹{item.price * item.quantity}</span>
+                      <span className="font-black text-gray-900 text-sm italic tracking-tighter">₹{item.price * item.quantity}</span>
                     </div>
                   ))}
                 </div>
-                <div className="pt-8 border-t border-dashed border-gray-200 flex justify-between items-center">
-                  <span className="font-black text-gray-400 uppercase text-[10px] tracking-widest">Total Amount</span>
-                  <span className="text-3xl font-black text-gray-950 tracking-tighter">₹{selectedOrder.total}</span>
+                <div className="pt-6 border-t border-dashed border-gray-200 flex justify-between items-center">
+                  <span className="font-black text-gray-400 uppercase text-[9px] tracking-[0.2em]">Total Amount</span>
+                  <span className="text-2xl font-black text-gray-950 tracking-tighter italic">₹{selectedOrder.total}</span>
                 </div>
-                <button className="w-full bg-gray-900 text-white py-4 rounded-[20px] font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-3 shadow-lg shadow-gray-200 hover:bg-black transition-all">
-                  <Download size={18} /> Download Invoice
+                <button className="w-full bg-gray-900 text-white py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 shadow-lg shadow-gray-200 hover:bg-black transition-all active:scale-[0.98]">
+                  <Download size={16} /> Download PDF
                 </button>
               </div>
             </motion.div>
           ) : (
-            <motion.div key={currentView} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+            <motion.div key={currentView} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }} className="h-full">
               {currentView === 'main' && renderMain()}
               {currentView === 'orders' && renderOrders()}
               {currentView === 'addresses' && renderAddresses()}
@@ -991,11 +993,10 @@ export default function Profile() {
               {currentView === 'support' && renderSupport()}
               {currentView === 'settings' && renderSettings()}
               {currentView === 'edit' && handleEditView()}
-              {/* Other views simulated for now */}
               {(currentView === 'notifications') && (
                 <div className="px-4 py-20 text-center space-y-4">
-                  <h3 className="text-xl font-black text-gray-900 italic tracking-tight">Coming Soon</h3>
-                  <p className="text-sm text-gray-400 font-bold max-w-xs mx-auto">We're working hard to polish this section for you. Stay tuned!</p>
+                  <h3 className="text-lg font-black text-gray-900 italic tracking-tight uppercase">Coming Soon</h3>
+                  <p className="text-xs text-gray-400 font-bold max-w-xs mx-auto">We're working hard to polish this section for you. Stay tuned!</p>
                   <button onClick={() => setCurrentView('main')} className="bg-red-50 text-red-500 px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest">Go Back</button>
                 </div>
               )}
@@ -1004,15 +1005,15 @@ export default function Profile() {
         </AnimatePresence>
       </main>
 
-      {/* Small Legal Footer */}
-      <footer className="py-3 px-4 text-center border-t border-gray-50 bg-gray-50/5 shrink-0">
-        <div className="flex gap-4 justify-center mb-1">
-          <ShieldCheck className="text-gray-200" size={12} />
-          <Settings className="text-gray-200" size={12} />
-          <HelpCircle className="text-gray-200" size={12} />
+      {/* Optimized Mini Footer with Developer Watermark */}
+      <footer className="py-2.5 px-4 text-center border-t border-gray-50 bg-white shrink-0">
+        <div className="flex gap-3 justify-center mb-0.5 opacity-20">
+          <ShieldCheck size={10} />
+          <Settings size={10} />
+          <HelpCircle size={10} />
         </div>
-        <p className="text-[9px] font-black text-gray-200 uppercase tracking-[0.2em] italic">Food Junction Premium</p>
-        <p className="text-[7px] font-bold text-gray-200 mt-0.5 uppercase tracking-tighter">v1.4.2</p>
+        <p className="text-[8px] font-black text-gray-200 uppercase tracking-[0.3em] italic">Developed by Rehan • @i_vnl_01</p>
+        <p className="text-[7px] font-bold text-gray-100 uppercase tracking-[0.1em] mt-0.5">Food Junction • Premium Tier</p>
       </footer>
     </div>
   );
@@ -1169,7 +1170,7 @@ export default function Profile() {
               </button>
             </form>
 
-            <div className="relative hidden md:block">
+            <div className="relative block">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-100"></div>
               </div>
@@ -1179,15 +1180,27 @@ export default function Profile() {
             </div>
 
             <button 
-              onClick={() => login()}
-              className="w-full bg-white border border-gray-200 rounded-xl py-3 hidden md:flex items-center justify-center gap-3 font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
+              onClick={async () => {
+                setAuthError('');
+                try {
+                  await login();
+                } catch (err: any) {
+                  console.error("Google login error:", err);
+                  if (err.code === 'auth/unauthorized-domain' || err.message?.includes('unauthorized-domain')) {
+                    setShowDomainHelp(true);
+                  } else {
+                    setAuthError(err.message || String(err));
+                  }
+                }
+              }}
+              className="w-full bg-white border border-gray-200 rounded-xl py-3 flex items-center justify-center gap-3 font-semibold text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all"
             >
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
               <span className="text-xs">Continue with Google</span>
             </button>
             
             {/* Note for Mobile App Users */}
-            <p className="text-[9px] text-gray-300 font-medium text-center uppercase tracking-tighter italic hidden md:block">
+            <p className="text-[9px] text-gray-300 font-medium text-center uppercase tracking-tighter italic block">
               Note: If Google sign-in fails in the app, use email above.
             </p>
 
@@ -1206,6 +1219,75 @@ export default function Profile() {
                 )}
               </button>
             </div>
+
+            {/* Detailed instructions on fixing unauthorized domain */}
+            <AnimatePresence>
+              {showDomainHelp && (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowDomainHelp(false)}
+                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                  />
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                    className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6 overflow-hidden border border-slate-100 z-10"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mb-4 shadow-sm border border-amber-100 mx-auto">
+                      <HelpCircle size={24} />
+                    </div>
+                    <h3 className="text-lg font-black text-slate-900 italic uppercase tracking-tight text-center leading-tight mb-2">
+                      Authorize Domain
+                    </h3>
+                    <p className="text-[11px] font-bold text-slate-500 text-center leading-relaxed mb-4 px-2">
+                      Your Firebase configuration blocks Google Sign-In on unauthorized domains. You can easily fix this in your Firebase console.
+                    </p>
+                    
+                    <div className="bg-slate-50 rounded-xl p-3 text-left space-y-2.5 mb-5 border border-slate-100">
+                      <div>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Your Domain Name</p>
+                        <code className="text-xs font-mono font-black text-indigo-600 block bg-white px-2 py-1 rounded border border-slate-100 break-all select-all">{window.location.hostname}</code>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Steps to Whitelist:</p>
+                        <ol className="text-[10px] text-slate-600 font-bold space-y-1 list-decimal pl-4 leading-normal">
+                          <li>Go to your Firebase Auth Console Settings.</li>
+                          <li>Select <span className="font-extrabold text-slate-800">Authorized Domains</span>.</li>
+                          <li>Click <span className="font-extrabold text-slate-800">Add Domain</span> and enter the domain shown above.</li>
+                          <li>Click Add to confirm.</li>
+                        </ol>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <a 
+                        href="https://console.firebase.google.com/project/gen-lang-client-0158268917/authentication/settings"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full bg-slate-900 text-white rounded-xl py-3 text-[10px] font-black uppercase tracking-widest text-center hover:bg-black transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-slate-900/10"
+                      >
+                        Firebase Console
+                      </a>
+                      <button 
+                        type="button"
+                        onClick={() => setShowDomainHelp(false)}
+                        className="w-full bg-slate-100 text-slate-500 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest text-center hover:bg-slate-200 transition-colors"
+                      >
+                        Got it
+                      </button>
+                    </div>
+
+                    <p className="text-[8px] text-slate-400 font-bold text-center uppercase tracking-wider mt-4">
+                      💡 Tip: Or sign in using Email / Password instantly!
+                    </p>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </div>
       </div>

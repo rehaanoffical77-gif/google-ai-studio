@@ -49,12 +49,7 @@ import {
 } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
+// Step type
 type Step = 'summary' | 'address' | 'payment' | 'processing' | 'confirmation' | 'tracking';
 
 export default function Checkout() {
@@ -182,7 +177,7 @@ export default function Checkout() {
     );
 
     const unsubSettings = onSnapshot(
-      doc(db, 'settings', 'config'),
+      doc(db, 'settings', 'restaurant'),
       (snap) => {
         if (snap.exists()) {
           setIsRestaurantOpen(snap.data().isOpen);
@@ -210,7 +205,6 @@ export default function Checkout() {
     setIsProcessingPayment(true);
     
     try {
-      // Temporarily finalizing directly without Razorpay for testing
       await finalizeOrder();
     } catch (err) {
       console.error("Order Error:", err);
@@ -347,43 +341,42 @@ export default function Checkout() {
     <motion.div 
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="space-y-3"
+      className="space-y-3 pb-4"
     >
-      {/* Items Section */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50">
-        <div className="flex items-center justify-between mb-4">
+      {/* Items Section - More Compact */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50 max-h-[300px] overflow-y-auto custom-scrollbar">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-red-50 text-[#E31837] rounded-lg">
-              <ShoppingBag size={16} />
+              <ShoppingBag size={14} />
             </div>
-            <h3 className="font-bold text-gray-900 text-sm">Items ({items.length})</h3>
+            <h3 className="font-bold text-gray-900 text-xs">Your Items ({items.length})</h3>
           </div>
           <button 
             onClick={() => navigate('/')}
-            className="text-[#E31837] text-[11px] font-bold italic"
+            className="text-[#E31837] text-[10px] font-black italic uppercase tracking-widest"
           >
             Edit
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {items.map((item) => (
             <div key={item.id} className="flex gap-3 items-center">
-              <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm shrink-0">
-                <img src={item.image || null} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm shrink-0">
+                <img src={item.image || undefined} alt="" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs text-gray-900 truncate italic">{item.name}</h4>
-                  <span className="font-black text-xs text-gray-900 italic">₹{item.price * item.quantity}</span>
+                  <h4 className="font-black text-[11px] text-gray-900 truncate italic">{item.name}</h4>
+                  <span className="font-black text-[11px] text-gray-900 italic">₹{item.price * item.quantity}</span>
                 </div>
-                <div className="flex items-center justify-between mt-1">
-                  <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-0.5">
-                    <button onClick={() => updateQuantity(item.id, -1)} className="text-[#E31837] font-black text-sm">-</button>
-                    <span className="text-[10px] font-black w-3 text-center">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, 1)} className="text-[#E31837] font-black text-sm">+</button>
+                <div className="flex items-center justify-between mt-0.5">
+                  <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-0.5 scale-90 origin-left">
+                    <button onClick={() => updateQuantity(item.id, -1)} className="text-[#E31837] font-black text-xs">-</button>
+                    <span className="text-[10px] font-black w-2 text-center">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.id, 1)} className="text-[#E31837] font-black text-xs">+</button>
                   </div>
-                  <span className="text-[10px] text-gray-400 font-bold italic">₹{item.price} each</span>
                 </div>
               </div>
             </div>
@@ -391,67 +384,57 @@ export default function Checkout() {
         </div>
       </div>
 
-      {/* Coupon Section */}
-      <div className="bg-white rounded-[24px] p-4 sm:p-5 shadow-[0_2px_15px_rgba(0,0,0,0.03)] border border-gray-50">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="p-2 bg-red-50 text-[#E31837] rounded-xl transform -rotate-12 shrink-0">
-              <Tag size={22} />
-            </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-bold text-gray-900">Apply Coupon</h4>
-              <p className="text-[10px] text-gray-400 font-medium">Get exciting offers and discounts</p>
-            </div>
+      {/* Compact Coupon Section */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-red-50 text-[#E31837] rounded-xl shrink-0">
+            <Tag size={18} />
           </div>
-          <div className="flex bg-gray-50 rounded-xl overflow-hidden border border-gray-100 w-full sm:max-w-[200px]">
+          <div className="flex-1 flex bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
             <input 
               type="text" 
-              placeholder="Enter coupon code" 
-              className="flex-1 bg-transparent px-3 py-2 text-[10px] font-bold outline-none placeholder:text-gray-300 min-w-0"
+              placeholder="Coupon Code" 
+              className="flex-1 bg-transparent px-3 py-1.5 text-[10px] font-bold outline-none placeholder:text-gray-300 min-w-0"
               value={promoCode}
-              onChange={(e) => {
-                setPromoCode(e.target.value.toUpperCase());
-                setCouponError('');
-              }}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
             />
             <button 
               onClick={handleApplyCoupon}
-              className="bg-[#E31837] text-white px-4 text-[10px] font-bold py-2 active:scale-95 transition-transform shrink-0"
+              className="bg-[#E31837] text-white px-4 text-[10px] font-bold py-1.5 active:scale-95 transition-transform"
             >
               {couponApplied ? 'Applied' : 'Apply'}
             </button>
           </div>
         </div>
-        {couponError && <p className="text-[10px] text-red-500 font-bold mt-2 px-1 italic">{couponError}</p>}
       </div>
 
-      {/* Bill Details Section */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50 space-y-2">
-        <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+      {/* Bill Details Section - Compact */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50 space-y-1.5">
+        <div className="flex justify-between items-center text-[9px] font-black text-gray-400 uppercase tracking-widest">
           <span>Subtotal</span>
-          <span className="text-gray-800">₹{subtotal.toFixed(2)}</span>
+          <span className="text-gray-900">₹{subtotal.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-tight">
-          <span>Packaging & Delivery</span>
-          <span className="text-gray-800">₹{(PACKAGING_FEE + DELIVERY_FEE).toFixed(2)}</span>
+        <div className="flex justify-between items-center text-[9px] font-black text-gray-400 uppercase tracking-widest">
+          <span>Extra Fees</span>
+          <span className="text-gray-900">₹{(PACKAGING_FEE + DELIVERY_FEE).toFixed(2)}</span>
         </div>
-        <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+        <div className="flex justify-between items-center text-[9px] font-black text-gray-400 uppercase tracking-widest">
           <span>Taxes (5%)</span>
-          <span className="text-gray-800">₹{tax.toFixed(2)}</span>
+          <span className="text-gray-900">₹{tax.toFixed(2)}</span>
         </div>
 
         {couponApplied && (
-          <div className="bg-green-50 rounded-xl p-2 flex justify-between items-center text-green-700 text-[10px] font-black italic">
-            <span>Coupon Discount</span>
+          <div className="bg-green-50 rounded-lg p-2 flex justify-between items-center text-green-700 text-[9px] font-black italic">
+            <span>Special Discount</span>
             <span>-₹{(VALID_COUPONS[promoCode] || 50).toFixed(2)}</span>
           </div>
         )}
 
         <div className="h-px border-t border-dashed border-gray-100 my-1" />
 
-        <div className="flex justify-between items-center">
-          <h5 className="font-black text-gray-900 italic text-sm">To Pay</h5>
-          <span className="text-lg font-black text-[#E31837] italic">₹{(finalTotal + PACKAGING_FEE).toFixed(2)}</span>
+        <div className="flex justify-between items-center text-red-600">
+          <h5 className="font-black italic text-xs uppercase tracking-tighter">Grand Total</h5>
+          <span className="text-xl font-black italic">₹{(finalTotal + PACKAGING_FEE).toFixed(2)}</span>
         </div>
       </div>
 

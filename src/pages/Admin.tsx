@@ -1,208 +1,153 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  BarChart3, 
+  ShoppingBag, 
+  Users, 
+  Settings, 
+  Plus, 
+  Trash2, 
+  CheckCircle2, 
+  Clock, 
+  X, 
+  Search, 
+  Filter, 
+  MoreVertical,
+  ChevronRight,
+  Utensils,
+  Truck,
+  Phone,
+  AlertCircle,
+  XCircle,
+  ArrowLeft,
+  Camera,
+  LogOut
+} from 'lucide-react';
 import { 
   collection, 
   query, 
   onSnapshot, 
+  orderBy, 
   doc, 
   updateDoc, 
-  orderBy,
-  deleteDoc,
-  addDoc
+  deleteDoc, 
+  addDoc,
+  getDocs,
+  Timestamp
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { useAuth } from '../context/AuthContext';
+import { db, auth } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  ShoppingBag, 
-  Users, 
-  Settings, 
-  Clock, 
-  CheckCircle2, 
-  Truck, 
-  XCircle,
-  MoreVertical,
-  ChevronRight,
-  Utensils,
-  Lock,
-  Trash2,
-  Upload
-} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { cn } from '../lib/utils';
+import { signOut } from 'firebase/auth';
+import { useAuth } from '../context/AuthContext';
 
-function CancellationTimer({ order }: { order: any }) {
-  const [timeLeft, setTimeLeft] = useState(60);
-
-  useEffect(() => {
-    const createdAt = order.createdAt?.seconds ? order.createdAt.seconds * 1000 : Date.now();
-    const expiryTime = createdAt + 60000;
-
-    const tick = () => {
-      const now = Date.now();
-      const diff = Math.max(0, Math.floor((expiryTime - now) / 1000));
-      setTimeLeft(diff);
-    };
-
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [order.createdAt]);
-
-  if (timeLeft <= 0) return null;
-
-  return (
-    <span className="text-[10px] font-black text-red-500 animate-pulse">
-      CAN CANCEL: {timeLeft}s
-    </span>
-  );
+interface Order {
+  id: string;
+  userEmail: string;
+  items: any[];
+  total: number;
+  status: 'received' | 'preparing' | 'ready' | 'on the way' | 'delivered' | 'cancelled';
+  createdAt: any;
+  address: any;
+  paymentMethod: string;
+  deliveryPartnerPhone?: string;
+  cancellationTimerId?: string;
 }
 
-export default function Admin() {
-  const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState('orders');
-  const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [menuItems, setMenuItems] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
+interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  image: string;
+  category: string;
+  isAvailable: boolean;
+}
+
+interface Customer {
+  id: string;
+  email: string;
+  displayName: string;
+  phone?: string;
+  name?: string;
+}
+
+const Admin: React.FC = () => {
+  const { user, isAdmin, loading: authLoading } = useAuth();
+  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'customers' | 'settings'>('orders');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isAddingMenuItem, setIsAddingMenuItem] = useState(false);
-  const [isRestaurantOpen, setIsRestaurantOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [menuSearchQuery, setMenuSearchQuery] = useState('');
+  const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>('all');
+  const [menuAvailabilityFilter, setMenuAvailabilityFilter] = useState<string>('all');
   const [newMenuItem, setNewMenuItem] = useState({
     name: '',
-    price: 0,
-    category: 'Main Course',
+    price: '',
     description: '',
-    image: '',
-    isAvailable: true
+    category: 'Main Course',
+    image: ''
   });
-
-  const ADMIN_EMAILS = ['rehaanoffical77@gmail.com', 'capcutrehaan@gmail.com'].map(e => e.toLowerCase());
+  const [isRestaurantOpen, setIsRestaurantOpen] = useState(true);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type: 'danger' | 'warning';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'warning'
+  });
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (authLoading) return;
-
-    if (!user || !ADMIN_EMAILS.includes(user.email?.toLowerCase() || "")) {
-      return;
+    if (!authLoading && !isAdmin) {
+      navigate('/');
     }
+  }, [isAdmin, authLoading, navigate]);
 
-    const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-    const unsubOrders = onSnapshot(qOrders, (snap) => {
-      setOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc')), (snapshot) => {
+      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
     });
 
-    const unsubMenu = onSnapshot(collection(db, 'menu'), (snap) => {
-      setMenuItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const unsubMenu = onSnapshot(collection(db, 'menu'), (snapshot) => {
+      setMenuItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem)));
     });
 
-    const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
-      setCustomers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const unsubCustomers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer)));
     });
 
-    const unsubSettings = onSnapshot(doc(db, 'settings', 'config'), (snap) => {
-      if (snap.exists()) {
-        setIsRestaurantOpen(snap.data().isOpen);
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'restaurant'), (doc) => {
+      if (doc.exists()) {
+        setIsRestaurantOpen(doc.data().isOpen !== false);
       }
     });
 
     return () => {
       unsubOrders();
       unsubMenu();
-      unsubUsers();
+      unsubCustomers();
       unsubSettings();
     };
-  }, [user, authLoading]);
-
-  const toggleRestaurantStatus = async () => {
-    try {
-      await updateDoc(doc(db, 'settings', 'config'), { isOpen: !isRestaurantOpen });
-    } catch (error) {
-      // If doc doesn't exist, set it
-      const { setDoc } = await import('firebase/firestore');
-      await setDoc(doc(db, 'settings', 'config'), { isOpen: !isRestaurantOpen });
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 800000) {
-        alert("Image size too large. Please select an image under 800KB.");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewMenuItem({ ...newMenuItem, image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const addMenuItem = async () => {
-    try {
-      await addDoc(collection(db, 'menu'), newMenuItem);
-      setIsAddingMenuItem(false);
-      setNewMenuItem({ name: '', price: 0, category: 'Main Course', description: '', image: '', isAvailable: true });
-    } catch (error) {
-      console.error("Add Menu Error:", error);
-    }
-  };
-
-  const deleteMenuItem = async (id: string) => {
-    if (window.confirm("Delete this menu item?")) {
-      await deleteDoc(doc(db, 'menu', id));
-    }
-  };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-12 h-12 bg-red-100 rounded-full" />
-          <div className="h-4 w-32 bg-gray-200 rounded" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!user || !ADMIN_EMAILS.includes(user.email?.toLowerCase() || "")) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-[40px] p-12 shadow-xl border border-gray-100 max-w-md w-full text-center space-y-6">
-          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto">
-            <Lock size={40} className="text-[#E31837]" />
-          </div>
-          <h2 className="text-3xl font-black text-gray-900 italic tracking-tight">Access Denied</h2>
-          <p className="text-gray-500 font-medium leading-relaxed">
-            This area is reserved for the restaurant owner. Please login with authorized credentials to continue.
-          </p>
-          <button 
-            onClick={() => navigate('/')}
-            className="w-full h-14 bg-gray-900 text-white rounded-2xl font-bold transition-transform active:scale-95"
-          >
-            Back to Website
-          </button>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
       await updateDoc(doc(db, 'orders', orderId), { status });
     } catch (error) {
-      console.error("Update Status Error:", error);
-    }
-  };
-
-  const cancelOrder = async (orderId: string) => {
-    if (window.confirm("Permanently cancel this order? This cannot be undone.")) {
-      try {
-        await updateDoc(doc(db, 'orders', orderId), { status: 'cancelled' });
-      } catch (error) {
-        console.error("Cancel Order Error:", error);
-      }
+      console.error('Error updating status:', error);
     }
   };
 
@@ -210,316 +155,507 @@ export default function Admin() {
     try {
       await updateDoc(doc(db, 'orders', orderId), info);
     } catch (error) {
-      console.error("Update Info Error:", error);
+      console.error('Error updating info:', error);
     }
+  };
+
+  const cancelOrder = (orderId: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Cancel Order',
+      message: 'Are you sure you want to cancel this order? This action cannot be undone.',
+      type: 'danger',
+      onConfirm: async () => {
+        await updateOrderStatus(orderId, 'cancelled');
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  const deleteMenuItem = (itemId: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Menu Item',
+      message: 'Are you sure you want to remove this item from the menu? It will be permanently deleted.',
+      type: 'danger',
+      onConfirm: async () => {
+        await deleteDoc(doc(db, 'menu', itemId));
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  const handleAddMenuItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await addDoc(collection(db, 'menu'), {
+        ...newMenuItem,
+        price: Number(newMenuItem.price),
+        isAvailable: true
+      });
+      setIsAddingMenuItem(false);
+      setNewMenuItem({ name: '', price: '', description: '', category: 'Main Course', image: '' });
+    } catch (error) {
+      console.error('Error adding menu item:', error);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size too large (max 2MB)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewMenuItem(prev => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const toggleRestaurantStatus = async () => {
+    const nextStatus = !isRestaurantOpen;
+    setIsRestaurantOpen(nextStatus);
+    await updateDoc(doc(db, 'settings', 'restaurant'), { isOpen: nextStatus });
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate('/login');
   };
 
   const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'received': return 'text-blue-500 bg-blue-50 border-blue-100';
-      case 'preparing': return 'text-orange-500 bg-orange-50 border-orange-100';
-      case 'ready': return 'text-purple-500 bg-purple-50 border-purple-100';
-      case 'on the way': return 'text-indigo-500 bg-indigo-50 border-indigo-100';
-      case 'delivered': return 'text-green-500 bg-green-50 border-green-100';
-      case 'cancelled': return 'text-red-500 bg-red-50 border-red-100';
-      default: return 'text-gray-500 bg-gray-50 border-gray-100';
+    switch (status) {
+      case 'received': return 'bg-blue-50 text-blue-600 border-blue-100';
+      case 'preparing': return 'bg-orange-50 text-orange-600 border-orange-100';
+      case 'ready': return 'bg-purple-50 text-purple-600 border-purple-100';
+      case 'on the way': return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+      case 'delivered': return 'bg-green-50 text-green-600 border-green-100';
+      case 'cancelled': return 'bg-red-50 text-red-600 border-red-100';
+      default: return 'bg-gray-50 text-gray-600 border-gray-100';
     }
   };
 
-  const getOrderItemsList = (order: any) => {
-    if (!order.items || !Array.isArray(order.items)) return 'No items';
-    return order.items.map((item: any) => `${item.quantity}x ${item.name}`).join(', ');
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = 
+      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.address?.street?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredMenuItems = menuItems.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(menuSearchQuery.toLowerCase());
+    const matchesCategory = menuCategoryFilter === 'all' || item.category === menuCategoryFilter;
+    const matchesAvailability = 
+      menuAvailabilityFilter === 'all' || 
+      (menuAvailabilityFilter === 'available' ? item.isAvailable : !item.isAvailable);
+    
+    return matchesSearch && matchesCategory && matchesAvailability;
+  });
+
+  const getOrderItemsList = (order: Order) => {
+    return order.items.map(item => `${item.quantity}x ${item.name}`).join(', ');
   };
 
+  const CancellationTimer = ({ order }: { order: Order }) => {
+    const [seconds, setSeconds] = useState(60);
+    
+    useEffect(() => {
+      if (order.status !== 'received') return;
+      const timer = setInterval(() => {
+        setSeconds(prev => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timer);
+    }, [order.status]);
+
+    if (order.status !== 'received' || seconds === 0) return null;
+
+    return (
+      <div className="flex items-center gap-1.5 bg-red-50 text-red-600 px-2.5 py-1 rounded-lg animate-pulse border border-red-100">
+        <Clock size={10} className="font-black" />
+        <span className="text-[10px] font-black tracking-tighter">CANCEL IN {seconds}s</span>
+      </div>
+    );
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ repeat: Infinity, duration: 1.5 }}
+          className="w-16 h-16 bg-red-600 rounded-[24px] flex items-center justify-center text-white shadow-xl shadow-red-200"
+        >
+          <Utensils size={32} />
+        </motion.div>
+        <p className="mt-8 text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 italic">Securing Control Panel...</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) return null;
+
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex font-sans selection:bg-red-100">
-      {/* Sidebar - Professional Gradient */}
-      <aside className="w-72 bg-gray-900 hidden lg:flex flex-col relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-red-500/10 to-transparent pointer-events-none" />
-        
-        <div className="p-8 relative">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 bg-[#E31837] rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/20">
-              <Utensils size={20} className="text-white" />
-            </div>
-            <h1 className="text-xl font-black italic text-white tracking-tight uppercase">MNDM <span className="text-red-500">PRO</span></h1>
-          </div>
-
-          <nav className="space-y-1.5">
-            {[
-              { id: 'orders', label: 'Command Center', icon: LayoutDashboard, count: orders.length },
-              { id: 'menu', label: 'Culinary Menu', icon: Utensils },
-              { id: 'customers', label: 'VIP Guests', icon: Users },
-              { id: 'settings', label: 'System Config', icon: Settings },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center justify-between px-5 py-3.5 rounded-2xl font-bold text-sm transition-all group ${
-                  activeTab === item.id 
-                    ? 'bg-white/10 text-white shadow-xl' 
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <item.icon size={18} className={activeTab === item.id ? 'text-red-500' : 'group-hover:text-red-400'} />
-                  {item.label}
-                </div>
-                {item.count !== undefined && (
-                  <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-full shadow-lg shadow-red-500/20">
-                    {item.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+    <div className="h-screen bg-[#F8FAFC] flex overflow-hidden">
+      {/* SaaS Sidebar */}
+      <aside className="w-24 bg-white border-r border-slate-200 flex flex-col items-center py-10 z-50 shrink-0">
+        <div className="w-12 h-12 bg-red-600 rounded-[22px] flex items-center justify-center text-white mb-16 shadow-lg shadow-red-500/20 group cursor-pointer overflow-hidden relative">
+          <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Utensils size={24} className="relative z-10" />
         </div>
 
-        <div className="mt-auto p-8 border-t border-white/5">
-          <div className="bg-white/5 rounded-[32px] p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white font-black italic shadow-lg">
-              RA
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-black text-white truncate italic tracking-tighter">Rehaan Admin</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Master Auth</p>
+        <nav className="flex flex-col gap-8 flex-1">
+          {[
+            { id: 'orders', icon: ShoppingBag },
+            { id: 'menu', icon: Utensils },
+            { id: 'customers', icon: Users },
+            { id: 'settings', icon: Settings },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center transition-all relative group",
+                activeTab === item.id 
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" 
+                  : "text-slate-400 hover:bg-slate-50 hover:text-slate-900"
+              )}
+            >
+              <item.icon size={20} />
+              {activeTab === item.id && (
+                <motion.div layoutId="active" className="absolute -left-6 w-1 h-6 bg-indigo-600 rounded-r-full" />
+              )}
+              <div className="absolute left-full ml-4 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+                {item.id}
               </div>
-            </div>
-            <button className="text-gray-500 hover:text-white transition-colors">
-              <Settings size={18} />
             </button>
+          ))}
+        </nav>
+
+        <button 
+          onClick={handleLogout}
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all group relative"
+        >
+          <LogOut size={20} />
+          <div className="absolute left-full ml-4 px-3 py-1.5 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-50">
+            Sign Out
           </div>
-        </div>
+        </button>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Modern Header */}
-        <header className="h-24 bg-white/80 backdrop-blur-xl border-b border-gray-100 flex items-center justify-between px-10 sticky top-0 z-50">
-          <div>
-            <h2 className="text-2xl font-black text-gray-900 italic tracking-tighter capitalize flex items-center gap-3">
-              {activeTab}
-              <span className="text-[9px] not-italic bg-green-50 text-green-600 font-black uppercase tracking-[0.2em] px-2 py-1 rounded-full border border-green-100 flex items-center gap-1.5">
-                <div className="w-1 h-1 bg-green-600 rounded-full animate-ping" />
-                System Live
-              </span>
-            </h2>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Real-time Operations Monitoring</p>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex flex-col items-end">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] mb-1">Today's Revenue</p>
-              <p className="text-2xl font-black text-gray-900 italic tracking-tighter">₹{orders.reduce((acc, o) => acc + (o.total || 0), 0).toLocaleString()}</p>
+      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Header */}
+        <header className="bg-white border-b border-slate-200 shrink-0">
+          <div className="max-w-7xl mx-auto px-10 h-24 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight italic uppercase">{activeTab} Panel</h1>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Operational Control Center</p>
             </div>
-            <div className="h-10 w-px bg-gray-100" />
-            <button className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all active:scale-95 text-gray-400 hover:text-gray-900">
-               <Clock size={20} />
-            </button>
+            <div className="flex items-center gap-6">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-black text-slate-900">Restaurant Status</p>
+                <div className="flex items-center justify-end gap-2 mt-1">
+                  <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", isRestaurantOpen ? "bg-green-500" : "bg-red-500")} />
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    {isRestaurantOpen ? "Accepting Orders" : "Kitchen Closed"}
+                  </span>
+                </div>
+              </div>
+              <div className="w-10 h-10 border-2 border-slate-100 rounded-full flex items-center justify-center bg-slate-50 text-slate-900 font-bold text-xs shadow-sm">
+                R
+              </div>
+            </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-10 font-sans custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
           {activeTab === 'orders' ? (
-            <div className="max-w-7xl mx-auto space-y-10">
-              {/* Stats Bento Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+              {/* Refined Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: 'Active Orders', value: orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length, icon: Clock, color: 'text-orange-500', bg: 'bg-orange-500/5' },
-                  { label: 'Today Revenue', value: '₹' + orders.reduce((acc, o) => acc + (o.total || 0), 0).toFixed(0), icon: ShoppingBag, color: 'text-blue-500', bg: 'bg-blue-500/5' },
-                  { label: 'Sold Out Items', value: menuItems.filter(i => i.isAvailable === false).length, icon: Utensils, color: 'text-red-600', bg: 'bg-red-600/5' },
-                  { label: 'VIP Customers', value: customers.length, icon: Users, color: 'text-green-500', bg: 'bg-green-500/5' },
+                  { label: 'Active Orders', value: orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length, icon: Clock, color: 'indigo' },
+                  { label: 'Total Revenue', value: '₹' + orders.filter(o => o.status === 'delivered').reduce((acc, o) => acc + (o.total || 0), 0).toLocaleString(), icon: BarChart3, color: 'blue' },
+                  { label: 'Sold Out', value: menuItems.filter(i => i.isAvailable === false).length, icon: AlertCircle, color: 'red' },
+                  { label: 'Total Guests', value: customers.filter(c => !['admin'].includes((c as any).role)).length, icon: Users, color: 'slate' },
                 ].map((stat, i) => (
-                  <div key={i} className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] group hover:shadow-xl hover:shadow-red-500/5 transition-all">
-                    <div className={`p-3 w-fit rounded-2xl mb-5 transition-transform group-hover:scale-110 ${stat.bg} ${stat.color}`}>
-                      <stat.icon size={22} />
+                  <div key={i} className="bg-white px-6 py-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div className={cn(
+                      "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
+                      stat.color === 'indigo' && "bg-indigo-50 text-indigo-600",
+                      stat.color === 'blue' && "bg-blue-50 text-blue-600",
+                      stat.color === 'red' && "bg-red-50 text-red-600",
+                      stat.color === 'slate' && "bg-slate-100 text-slate-600"
+                    )}>
+                      <stat.icon size={20} />
                     </div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-2">{stat.label}</p>
-                    <p className="text-3xl font-black text-gray-900 italic tracking-tighter">{stat.value}</p>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{stat.label}</p>
+                      <p className="text-xl font-black text-slate-900 tracking-tight truncate">{stat.value}</p>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              {/* Advanced Orders Control */}
-              <div className="bg-white rounded-[40px] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden outline outline-4 outline-white">
-                <div className="px-10 py-8 border-b border-gray-50 flex items-center justify-between bg-gradient-to-r from-gray-50/50 to-transparent">
-                  <div>
-                    <h3 className="text-2xl font-black text-gray-900 italic tracking-tight">Recent Activity</h3>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Real-time Order Feed</p>
+              {/* Sold Out Advertisement/Alert */}
+              {menuItems.filter(i => !i.isAvailable).length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
+                      <AlertCircle size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-red-900 italic tracking-tight">INVENTORY ALERT: {menuItems.filter(i => !i.isAvailable).length} ITEMS SOLD OUT</p>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {menuItems.filter(i => !i.isAvailable).slice(0, 5).map(item => (
+                          <span key={item.id} className="text-[9px] font-black uppercase text-red-400 bg-white px-2 py-0.5 rounded-md border border-red-50">
+                            {item.name}
+                          </span>
+                        ))}
+                        {menuItems.filter(i => !i.isAvailable).length > 5 && (
+                          <span className="text-[9px] font-black uppercase text-red-400">+{menuItems.filter(i => !i.isAvailable).length - 5} more</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    {['all', 'preparing', 'on the way'].map(filter => (
-                      <button key={filter} className="px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-gray-50 text-gray-400 hover:bg-gray-100 transition-all border border-gray-100">
-                        {filter}
-                      </button>
-                    ))}
+                  <button 
+                    onClick={() => setActiveTab('menu')}
+                    className="bg-red-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md shadow-red-200 active:scale-95 transition-all"
+                  >
+                    Restock
+                  </button>
+                </motion.div>
+              )}
+
+              {/* Order Management Table */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">Live Orders</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Real-time operation control</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative group">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                      <input 
+                        type="text" 
+                        placeholder="Search ID/Guest..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-[11px] font-bold outline-none focus:bg-white focus:border-indigo-500 transition-all w-48"
+                      />
+                    </div>
+                    <div className="relative">
+                      <select 
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="p-2 pr-8 bg-slate-50 border border-slate-200 text-slate-500 text-[11px] font-bold rounded-lg hover:bg-slate-100 transition-all appearance-none outline-none focus:border-indigo-500"
+                      >
+                        <option value="all">All States</option>
+                        <option value="received">Received</option>
+                        <option value="preparing">Preparing</option>
+                        <option value="ready">Ready</option>
+                        <option value="on the way">On The Way</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                      <Filter size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="divide-y divide-gray-50">
-                  {orders.length === 0 ? (
-                    <div className="py-24 text-center">
-                      <ShoppingBag size={48} className="mx-auto text-gray-100 mb-6" />
-                      <h3 className="text-xl font-black text-gray-300 italic uppercase">Silence in the kitchen</h3>
-                      <p className="text-gray-400 font-bold text-sm tracking-widest uppercase mt-2">Waiting for first strike...</p>
-                    </div>
-                  ) : (
-                    orders.map((order) => (
-                      <div key={order.id} className="p-10 flex gap-8 group hover:bg-[#F8F9FA] transition-all relative">
-                        {/* ID & Date Badge */}
-                        <div className="flex flex-col items-center gap-1.5 shrink-0">
-                          <div className="w-16 h-16 bg-gray-900 rounded-[28px] flex flex-col items-center justify-center text-white shadow-xl shadow-gray-900/10 group-hover:-rotate-6 transition-transform">
-                            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">ORDER</p>
-                            <p className="text-sm font-black italic">#{order.id.slice(-4).toUpperCase()}</p>
-                          </div>
-                          <p className="text-[10px] font-bold text-gray-400 tracking-tighter">
-                            {new Date(order.createdAt?.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-
-                        {/* Customer & Items */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="text-xl font-black text-gray-900 italic tracking-tight truncate">{order.address?.label || 'Direct Order'}</h4>
-                            <span className="text-[10px] bg-gray-100 text-gray-500 font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">
-                               {order.items?.length || 0} Items
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-500 font-medium leading-relaxed italic line-clamp-2">
-                            {getOrderItemsList(order)}
-                          </p>
-                          <div className="flex items-center gap-4 mt-6">
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-xl border border-gray-100">
-                               <Users size={12} className="text-gray-400" />
-                               <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{order.userEmail?.split('@')[0] || 'Guest'}</span>
-                            </div>
-                            <p className="text-lg font-black text-gray-900 tracking-tighter">₹{order.total?.toFixed(2)}</p>
-                          </div>
-                        </div>
-
-                        {/* Dynamic Status Engine */}
-                        <div className="flex flex-col items-center gap-4 min-w-[140px]">
-                           <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Lifecycle State</p>
-                           <div className="flex flex-col items-center gap-3">
-                             <div className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm border ${getStatusColor(order.status)}`}>
-                               {order.status}
-                             </div>
-                             {order.status === 'received' && (
-                               <CancellationTimer order={order} />
-                             )}
-                           </div>
-                        </div>
-
-                        {/* Professional Partner Management */}
-                        <div className="w-60 bg-white/50 backdrop-blur-sm p-5 rounded-[32px] border border-gray-100 shadow-inner group-hover:bg-white transition-all">
-                           <div className="flex items-center gap-3 mb-4">
-                              <div className="w-8 h-8 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
-                                <Truck size={16} />
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-50/50 border-b border-slate-100">
+                      <tr>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">ID & Guest</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Details</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Logistics</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {filteredOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                            No matching orders in feed
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredOrders.map((order) => (
+                          <tr key={order.id} className="group border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                            <td className="px-6 py-5">
+                              <div className="flex flex-col">
+                                <span className="text-xs font-black text-slate-900 tracking-tighter"># {order.id.slice(-6).toUpperCase()}</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate max-w-[100px]">{order.userEmail}</span>
                               </div>
-                              <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest italic">Logistics</p>
-                           </div>
-                           <div className="space-y-3">
-                              <input 
-                                type="text" 
-                                placeholder="Pilot Name" 
-                                className="w-full text-[11px] font-bold border-none outline-none focus:text-red-600 bg-transparent placeholder:text-gray-300"
-                                defaultValue={order.deliveryPartnerName || ''}
-                                onBlur={(e) => updateOrderInfo(order.id, { deliveryPartnerName: e.target.value })}
-                              />
-                              <div className="h-[1px] bg-gray-100 w-full" />
-                              <input 
-                                type="text" 
-                                placeholder="Pilot Phone" 
-                                className="w-full text-[11px] font-black border-none outline-none focus:text-red-600 bg-transparent placeholder:text-gray-300 tracking-wider"
-                                defaultValue={order.deliveryPartnerPhone || ''}
-                                onBlur={(e) => updateOrderInfo(order.id, { deliveryPartnerPhone: e.target.value })}
-                              />
-                           </div>
-                        </div>
-
-                        {/* Command Actions */}
-                        <div className="flex flex-col justify-center gap-2 shrink-0">
-                           {order.status === 'received' && (
-                             <button 
-                               onClick={() => updateOrderStatus(order.id, 'preparing')}
-                               className="w-12 h-12 bg-blue-600 text-white rounded-[20px] flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-blue-600/20"
-                               title="Received -> Preparing"
-                             >
-                               <Utensils size={20} />
-                             </button>
-                           )}
-                           {order.status === 'preparing' && (
-                             <button 
-                               onClick={() => updateOrderStatus(order.id, 'ready')}
-                               className="w-12 h-12 bg-orange-600 text-white rounded-[20px] flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-orange-600/20"
-                               title="Preparing -> Ready"
-                             >
-                               <ShoppingBag size={20} />
-                             </button>
-                           )}
-                           {order.status === 'ready' && (
-                             <button 
-                               onClick={() => updateOrderStatus(order.id, 'on the way')}
-                               className="w-12 h-12 bg-purple-600 text-white rounded-[20px] flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-purple-600/20"
-                               title="Ready -> On the Way"
-                             >
-                               <Truck size={20} />
-                             </button>
-                           )}
-                           {order.status === 'on the way' && (
-                             <button 
-                               onClick={() => updateOrderStatus(order.id, 'delivered')}
-                               className="w-12 h-12 bg-green-600 text-white rounded-[20px] flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-green-600/20"
-                               title="On the Way -> Delivered"
-                             >
-                               <CheckCircle2 size={20} />
-                             </button>
-                           )}
-                           {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                             <button 
-                               onClick={() => cancelOrder(order.id)}
-                               className="w-12 h-12 bg-red-50 text-red-500 rounded-[20px] flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                               title="Cancel Order"
-                             >
-                               <XCircle size={20} />
-                             </button>
-                           )}
-                           <button 
-                             onClick={() => setSelectedOrder(order)}
-                             className="w-12 h-12 bg-gray-50 text-gray-400 rounded-[20px] flex items-center justify-center hover:bg-gray-100 hover:text-gray-900 transition-all font-black text-xs"
-                             title="Full Details"
-                           >
-                             <MoreVertical size={20} />
-                           </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                            </td>
+                            <td className="px-6 py-5">
+                              <div className="flex flex-col">
+                                <span className="text-[11px] font-bold text-slate-700 italic line-clamp-1">{getOrderItemsList(order)}</span>
+                                <span className="text-[10px] font-black text-indigo-600 mt-1">₹{order.total?.toFixed(2)}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              <div className="flex justify-center">
+                                <div className={cn(
+                                  "inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border items-center gap-1.5",
+                                  getStatusColor(order.status)
+                                )}>
+                                  <div className={cn(
+                                    "w-1 h-1 rounded-full",
+                                    order.status === 'received' ? 'bg-blue-500' :
+                                    order.status === 'preparing' ? 'bg-orange-500' :
+                                    order.status === 'ready' ? 'bg-purple-500' :
+                                    order.status === 'on the way' ? 'bg-indigo-500' :
+                                    order.status === 'delivered' ? 'bg-green-500' : 'bg-red-500'
+                                  )} />
+                                  {order.status}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5">
+                              <div className="flex items-center gap-2">
+                                <div className="relative">
+                                  <input 
+                                    defaultValue={order.deliveryPartnerPhone || ''} 
+                                    placeholder="Pilot Phone"
+                                    onBlur={(e) => updateOrderInfo(order.id, { deliveryPartnerPhone: e.target.value })} 
+                                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 w-32 text-[10px] font-bold outline-none focus:border-indigo-500 transition-all" 
+                                  />
+                                  {order.deliveryPartnerPhone && (
+                                    <a 
+                                      href={`tel:${order.deliveryPartnerPhone}`} 
+                                      className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-600"
+                                      title="Call Pilot"
+                                    >
+                                      <Phone size={12} />
+                                    </a>
+                                  )}
+                                </div>
+                                <CancellationTimer order={order} />
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {['received', 'preparing', 'ready', 'on the way'].includes(order.status) && (
+                                  <button 
+                                    onClick={() => {
+                                      const nextStatusMap: Record<string, string> = {
+                                        'received': 'preparing',
+                                        'preparing': 'ready',
+                                        'ready': 'on the way',
+                                        'on the way': 'delivered'
+                                      };
+                                      updateOrderStatus(order.id, nextStatusMap[order.status]);
+                                    }}
+                                    className="p-2 bg-indigo-600 text-white rounded-lg hover:scale-105 active:scale-95 transition-all shadow-sm"
+                                    title="Next Stage"
+                                  >
+                                    <CheckCircle2 size={14} />
+                                  </button>
+                                )}
+                                {['received', 'preparing'].includes(order.status) && (
+                                  <button 
+                                    onClick={() => cancelOrder(order.id)}
+                                    className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                    title="Cancel Order"
+                                  >
+                                    <XCircle size={14} />
+                                  </button>
+                                )}
+                                <button onClick={() => setSelectedOrder(order)} className="p-2 bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 rounded-lg transition-all" title="View Details">
+                                  <ChevronRight size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
           ) : activeTab === 'menu' ? (
-            <div className="max-w-7xl mx-auto space-y-8">
-              <div className="flex justify-between items-center bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
+            <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+              <div className="flex flex-col lg:flex-row justify-between lg:items-center bg-white p-6 sm:p-8 rounded-[40px] border border-gray-100 shadow-sm gap-6">
                 <div>
                   <h3 className="text-2xl font-black text-gray-900 italic uppercase">Culinary Menu</h3>
                   <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Manage dishes and availability</p>
                 </div>
-                <button 
-                  onClick={() => setIsAddingMenuItem(true)}
-                  className="bg-gray-900 text-white px-8 py-3 rounded-2xl font-black italic text-sm hover:scale-105 active:scale-95 transition-all shadow-xl shadow-gray-900/10"
-                >
-                  Add New Dish
-                </button>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="relative group min-w-[200px]">
+                    <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <input 
+                      type="text" 
+                      placeholder="Search dishes..." 
+                      value={menuSearchQuery}
+                      onChange={(e) => setMenuSearchQuery(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-[11px] font-bold outline-none focus:bg-white focus:border-indigo-500 transition-all w-full"
+                    />
+                  </div>
+                  <div className="relative h-10 min-w-[140px]">
+                    <select 
+                      value={menuCategoryFilter}
+                      onChange={(e) => setMenuCategoryFilter(e.target.value)}
+                      className="w-full h-full p-2 pr-8 bg-slate-50 border border-slate-200 text-slate-500 text-[11px] font-bold rounded-xl hover:bg-slate-100 transition-all appearance-none outline-none focus:border-indigo-500"
+                    >
+                      <option value="all">Categories</option>
+                      <option>Main Course</option>
+                      <option>Starters</option>
+                      <option>Breads</option>
+                      <option>Desserts</option>
+                      <option>Beverages</option>
+                    </select>
+                    <Filter size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  </div>
+                  <div className="relative h-10 min-w-[120px]">
+                    <select 
+                      value={menuAvailabilityFilter}
+                      onChange={(e) => setMenuAvailabilityFilter(e.target.value)}
+                      className="w-full h-full p-2 pr-8 bg-slate-50 border border-slate-200 text-slate-500 text-[11px] font-bold rounded-xl hover:bg-slate-100 transition-all appearance-none outline-none focus:border-indigo-500"
+                    >
+                      <option value="all">Status</option>
+                      <option value="available">In Stock</option>
+                      <option value="unavailable">Sold Out</option>
+                    </select>
+                    <Filter size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  </div>
+                  <button 
+                    onClick={() => setIsAddingMenuItem(true)}
+                    className="h-10 bg-gray-900 text-white px-6 rounded-xl font-black italic text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-gray-900/10 flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Add Dish
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {menuItems.map(item => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
+                {filteredMenuItems.length === 0 ? (
+                  <div className="col-span-full py-20 text-center">
+                    <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center mx-auto mb-6">
+                      <Search size={32} className="text-slate-200" />
+                    </div>
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-xs italic">No culinary items found matching your filters</p>
+                  </div>
+                ) : (
+                  filteredMenuItems.map(item => (
                   <div key={item.id} className="bg-white rounded-[32px] overflow-hidden border border-gray-100 shadow-sm group hover:shadow-xl transition-all">
                     <div className="aspect-video relative overflow-hidden">
-                      <img src={item.image || null} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      <img src={item.image || undefined} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                       <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase italic tracking-widest shadow-sm">
                         {item.category}
                       </div>
@@ -548,25 +684,34 @@ export default function Admin() {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
-          ) : activeTab === 'customers' ? (
+          </div>
+        ) : activeTab === 'customers' ? (
             <div className="max-w-7xl mx-auto bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
               <div className="p-10 border-b border-gray-50 bg-gradient-to-r from-gray-50/50 to-transparent">
                 <h3 className="text-2xl font-black text-gray-900 italic uppercase">VIP Guests</h3>
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Total Audience Reach</p>
               </div>
               <div className="divide-y divide-gray-50">
-                {customers.map(c => (
+                {customers.sort((a, b) => ((b as any).role === 'admin' ? 1 : -1)).map(c => (
                   <div key={c.id} className="p-8 flex items-center justify-between hover:bg-gray-50 transition-colors">
                     <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 bg-red-500 rounded-2xl flex items-center justify-center text-white text-xl font-black italic shadow-lg shadow-red-500/10">
+                      <div className={cn(
+                        "w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black italic shadow-lg",
+                        (c as any).role === 'admin' ? "bg-indigo-600 shadow-indigo-500/10" : "bg-red-500 shadow-red-500/10"
+                      )}>
                         {c.email?.[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-black text-gray-900 italic tracking-tight text-lg leading-none mb-1">{c.displayName || c.name || 'Anonymous Guest'}</p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">{c.email}</p>
+                        <div className="flex items-center gap-3">
+                          <p className="font-black text-gray-900 italic tracking-tight text-lg leading-none">{c.displayName || c.name || 'Anonymous Guest'}</p>
+                          {(c as any).role === 'admin' && (
+                            <span className="bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase px-2 py-0.5 rounded-md border border-indigo-100 tracking-[0.2em]">Management</span>
+                          )}
+                        </div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">{c.email}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -601,15 +746,6 @@ export default function Admin() {
                     />
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl">
-                  <div className="text-left">
-                    <p className="font-black text-gray-900 tracking-tight">Maintenance Mode</p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Admin only access</p>
-                  </div>
-                  <div className="w-14 h-8 bg-gray-200 rounded-full relative p-1 cursor-not-allowed">
-                    <div className="w-6 h-6 bg-white rounded-full shadow-sm" />
-                  </div>
-                </div>
               </div>
             </div>
           )}
@@ -631,69 +767,81 @@ export default function Admin() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-[48px] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-2xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-10 max-h-[85vh] overflow-y-auto custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-6 sm:p-10 custom-scrollbar">
                 <div className="flex items-center justify-between mb-8">
                   <div>
-                    <h2 className="text-3xl font-black text-gray-900 italic tracking-tighter uppercase leading-none">Order Details</h2>
-                    <p className="text-[11px] font-black text-red-500 uppercase tracking-widest mt-3 flex items-center gap-2 italic">
-                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                      #{selectedOrder.id.toUpperCase()}
+                    <h2 className="text-3xl font-black text-gray-900 italic tracking-tighter uppercase leading-none px-2">Order Report</h2>
+                    <p className="text-[11px] font-black text-red-500 uppercase tracking-widest mt-2 flex items-center gap-2 italic px-2">
+                      <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                      ID: {selectedOrder.id.toUpperCase()}
                     </p>
                   </div>
                   <button 
                     onClick={() => setSelectedOrder(null)}
-                    className="w-12 h-12 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors"
+                    className="w-12 h-12 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all hover:bg-red-50 hover:text-red-500"
                   >
-                    <XCircle size={24} />
+                    <X size={24} />
                   </button>
                 </div>
 
                 <div className="space-y-8">
-                  <div className="bg-gray-50 rounded-[32px] p-8 border border-gray-100">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Customer Details</p>
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#E31837] shadow-sm border border-gray-100">
+                  <div className="bg-slate-50/50 rounded-[32px] p-8 border border-slate-100 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl transition-all group-hover:scale-150" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Recipient Information</p>
+                    <div className="flex items-start gap-4 relative z-10">
+                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-50">
                         <Users size={20} />
                       </div>
-                      <div>
-                        <p className="font-black text-gray-900 text-lg leading-none mb-1">{selectedOrder.userEmail}</p>
-                        <p className="text-sm font-medium text-gray-500 italic leading-relaxed">{selectedOrder.address?.street}, {selectedOrder.address?.city}</p>
-                        <p className="text-sm font-black text-gray-400 mt-2">Zone: {selectedOrder.address?.zone}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-slate-900 text-lg leading-none mb-1.5 truncate">{selectedOrder.userEmail}</p>
+                        <p className="text-sm font-bold text-slate-400 italic leading-relaxed">{selectedOrder.address?.street}, {selectedOrder.address?.city}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Order Manifest</p>
-                    <div className="space-y-2">
-                       {selectedOrder.items?.map((item: any, i: number) => (
-                         <div key={i} className="flex items-center justify-between p-5 bg-white border border-gray-100 rounded-3xl hover:border-red-100 transition-colors">
-                           <div className="flex items-center gap-4">
-                             <div className="w-12 h-12 bg-gray-50 rounded-2xl overflow-hidden shadow-inner border border-gray-100">
-                               <img src={item.image || null} alt="" className="w-full h-full object-cover" />
-                             </div>
-                             <div>
-                               <p className="font-black text-gray-900 tracking-tight">{item.name}</p>
-                               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{item.quantity} Unit(s)</p>
-                             </div>
-                           </div>
-                           <p className="text-lg font-black text-gray-900 italic tracking-tighter">₹{(item.price * item.quantity).toFixed(2)}</p>
-                         </div>
-                       ))}
+                    <div className="flex items-center justify-between px-2">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Itemized Bill</p>
+                      <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">
+                        <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+                          {selectedOrder.paymentMethod}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+                      {selectedOrder.items.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-6 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:scale-110 transition-transform">
+                              <Utensils size={16} />
+                            </div>
+                            <div>
+                              <p className="font-black text-slate-900 italic text-sm">{item.name}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.quantity} x ₹{item.price}</p>
+                            </div>
+                          </div>
+                          <p className="font-black text-slate-900 italic text-sm tracking-tighter">₹{item.price * item.quantity}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="bg-gray-900 rounded-[32px] p-8 text-white flex items-center justify-between shadow-2xl shadow-gray-900/40 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-full -mr-8 -mt-8" />
+                  <div className="flex items-center justify-between p-8 bg-slate-900 rounded-[32px] text-white shadow-2xl shadow-slate-900/10 mb-2">
                     <div>
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 italic">Settlement Total</p>
-                      <p className="text-3xl font-black italic tracking-tighter">₹{selectedOrder.total?.toFixed(2)}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Final Settlement</p>
+                      <h4 className="text-3xl font-black italic tracking-tighter">₹{selectedOrder.total}</h4>
                     </div>
-                    <div className="text-right">
-                       <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Payment Method</p>
-                       <p className="text-sm font-black italic tracking-tight text-red-500">{selectedOrder.paymentMethod}</p>
+                    <div className="text-right flex flex-col items-end gap-3">
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Operational State</p>
+                        <div className="flex items-center gap-2 justify-end">
+                          <div className={cn("w-2 h-2 rounded-full animate-pulse", selectedOrder.status === 'cancelled' ? 'bg-red-400' : 'bg-green-400')} />
+                          <p className="text-lg font-black italic uppercase tracking-tighter">{selectedOrder.status}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -703,10 +851,10 @@ export default function Admin() {
         )}
       </AnimatePresence>
 
-      {/* Add/Edit Menu Item Modal */}
+      {/* Add Menu Item Modal */}
       <AnimatePresence>
         {isAddingMenuItem && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 sm:p-10">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -718,106 +866,167 @@ export default function Admin() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-xl bg-white rounded-[48px] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-xl bg-white rounded-[40px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
             >
-              <div className="p-10">
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h2 className="text-3xl font-black text-gray-900 italic uppercase leading-none">New Creation</h2>
-                    <p className="text-[11px] font-black text-red-500 uppercase tracking-widest mt-3 italic">Add to Culinary Menu</p>
+              <form onSubmit={handleAddMenuItem} className="flex flex-col h-full">
+                <div className="p-6 sm:p-10 pb-0 shrink-0">
+                  <div className="flex items-center justify-between mb-8 sm:mb-10">
+                    <div>
+                      <h2 className="text-2xl sm:text-3xl font-black text-slate-900 italic tracking-tighter uppercase leading-none px-2">New Creation</h2>
+                      <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mt-2 sm:mt-3 italic px-2">Add to culinary library</p>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setIsAddingMenuItem(false)}
+                      className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                    >
+                      <X size={20} />
+                    </button>
                   </div>
-                  <button onClick={() => setIsAddingMenuItem(false)} className="text-gray-400 hover:text-gray-900">
-                    <XCircle size={32} />
-                  </button>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1 mt-2">
-                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Dish Title</label>
-                       <input 
-                         type="text" 
-                         className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3.5 font-bold outline-none focus:bg-white transition-all shadow-inner"
-                         placeholder="e.g. Royal Chicken Biryani"
-                         value={newMenuItem.name}
-                         onChange={e => setNewMenuItem({...newMenuItem, name: e.target.value})}
-                       />
-                    </div>
-                    <div className="space-y-1 mt-2">
-                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Settlement Price</label>
-                       <input 
-                         type="number" 
-                         className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3.5 font-bold outline-none focus:bg-white transition-all shadow-inner"
-                         placeholder="₹299"
-                         value={newMenuItem.price}
-                         onChange={e => setNewMenuItem({...newMenuItem, price: Number(e.target.value)})}
-                       />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Dish Illustration</label>
-                     <div className="flex items-center gap-5 bg-gray-50 border border-gray-100 rounded-3xl p-5 shadow-inner">
-                       <div className="w-24 h-24 rounded-2xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden shadow-sm shrink-0">
-                         {newMenuItem.image ? (
-                           <img src={newMenuItem.image} alt="Preview" className="w-full h-full object-cover" />
-                         ) : (
-                           <Upload size={32} className="text-gray-200" />
-                         )}
-                       </div>
-                       <div className="flex-1 space-y-3">
-                         <p className="text-[10px] font-bold text-gray-400 leading-tight italic">
-                           Directly upload a photo from your clinical device. Recommended size: under 800KB.
-                         </p>
-                         <input 
-                           type="file" 
-                           accept="image/*"
-                           id="dish-upload"
-                           className="hidden"
-                           onChange={handleImageUpload}
-                         />
-                         <label 
-                           htmlFor="dish-upload"
-                           className="inline-block bg-gray-900 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-lg shadow-gray-900/10"
-                         >
-                           {newMenuItem.image ? 'Change Asset' : 'Select File'}
-                         </label>
-                       </div>
-                     </div>
-                  </div>
-
-                  <div className="space-y-1">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Category Segment</label>
-                     <select 
-                       className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3.5 font-bold outline-none focus:bg-white transition-all shadow-inner appearance-none capitalize"
-                       value={newMenuItem.category}
-                       onChange={e => setNewMenuItem({...newMenuItem, category: e.target.value})}
-                     >
-                       <option>Biryani</option>
-                       <option>Starters</option>
-                       <option>Desserts</option>
-                       <option>Beverages</option>
-                       <option>Main Course</option>
-                     </select>
-                  </div>
-
-                  <div className="space-y-1">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Culinary Narrative</label>
-                     <textarea 
-                       className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3.5 font-bold outline-none focus:bg-white transition-all shadow-inner h-24 resize-none"
-                       placeholder="Describe the flavors..."
-                       value={newMenuItem.description}
-                       onChange={e => setNewMenuItem({...newMenuItem, description: e.target.value})}
-                     />
-                  </div>
-
-                  <button 
-                    onClick={addMenuItem}
-                    className="w-full bg-gray-900 text-white rounded-3xl py-4 font-black italic text-sm shadow-2xl shadow-gray-900/20 hover:scale-[1.02] active:scale-95 transition-all mt-4"
+                <div className="flex-1 overflow-y-auto p-6 sm:p-10 pt-0 space-y-6 sm:space-y-8 custom-scrollbar">
+                  {/* Image Upload Area */}
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="aspect-[16/9] sm:aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] flex flex-col items-center justify-center gap-2 sm:gap-4 cursor-pointer hover:bg-slate-100/50 hover:border-indigo-200 transition-all overflow-hidden relative group"
                   >
-                    DEPLOY TO MENU
+                    {newMenuItem.image ? (
+                      <>
+                        <img src={newMenuItem.image} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Camera className="text-white" size={24} />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-2xl flex items-center justify-center text-slate-300 shadow-sm border border-slate-100 group-hover:text-indigo-400 group-hover:border-indigo-100 transition-all">
+                          <Camera size={24} />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs sm:text-sm font-black text-slate-900 italic tracking-tight">Upload Product Shot</p>
+                          <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 italic">Max 2MB • PNG/JPG</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={handleImageUpload} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-4">Dish Title</label>
+                      <input 
+                        required
+                        value={newMenuItem.name}
+                        onChange={e => setNewMenuItem(prev => ({ ...prev, name: e.target.value }))}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 font-black italic outline-none focus:bg-white focus:border-indigo-500 transition-all text-sm placeholder:text-slate-300"
+                        placeholder="e.g., Signature Burger"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-4">Valuation (₹)</label>
+                      <input 
+                        required
+                        type="number"
+                        value={newMenuItem.price}
+                        onChange={e => setNewMenuItem(prev => ({ ...prev, price: e.target.value }))}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 font-black italic outline-none focus:bg-white focus:border-indigo-500 transition-all text-sm placeholder:text-slate-300"
+                        placeholder="299"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-4">Culinary Narrative</label>
+                    <textarea 
+                      required
+                      value={newMenuItem.description}
+                      onChange={e => setNewMenuItem(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-[32px] px-6 py-4 font-black italic outline-none focus:bg-white focus:border-indigo-500 transition-all text-sm h-32 resize-none placeholder:text-slate-300"
+                      placeholder="Describe the flavors and ingredients..."
+                    />
+                  </div>
+
+                  <div className="space-y-2 pb-4">
+                    <label className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-4">Menu Classification</label>
+                    <div className="relative">
+                      <select 
+                        value={newMenuItem.category}
+                        onChange={e => setNewMenuItem(prev => ({ ...prev, category: e.target.value }))}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 font-black italic outline-none focus:bg-white focus:border-indigo-500 transition-all text-sm appearance-none cursor-pointer"
+                      >
+                        <option>Main Course</option>
+                        <option>Starters</option>
+                        <option>Breads</option>
+                        <option>Desserts</option>
+                        <option>Beverages</option>
+                      </select>
+                      <Filter size={16} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 sm:p-10 pt-4 shrink-0 bg-white border-t border-slate-50">
+                  <button 
+                    type="submit"
+                    className="w-full bg-slate-900 text-white py-4 sm:py-6 rounded-3xl font-black italic text-base sm:text-lg shadow-xl shadow-slate-900/10 hover:bg-black hover:scale-[1.01] active:scale-[0.99] transition-all"
+                  >
+                    Deploy New Dish
                   </button>
                 </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Confirmation Dialog Modal */}
+      <AnimatePresence>
+        {confirmDialog.isOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm bg-white rounded-[32px] shadow-2xl p-8 text-center overflow-hidden"
+            >
+              <div className={cn(
+                "w-16 h-16 rounded-[24px] flex items-center justify-center mx-auto mb-6 shadow-lg",
+                confirmDialog.type === 'danger' ? "bg-red-50 text-red-500 shadow-red-500/10" : "bg-orange-50 text-orange-500 shadow-orange-500/10"
+              )}>
+                {confirmDialog.type === 'danger' ? <Trash2 size={24} /> : <AlertCircle size={24} />}
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 italic tracking-tight uppercase leading-none mb-3">{confirmDialog.title}</h3>
+              <p className="text-xs font-bold text-slate-500 leading-relaxed mb-8 px-4">{confirmDialog.message}</p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                  className="flex-1 px-4 py-3 bg-slate-100 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-colors"
+                >
+                  Go Back
+                </button>
+                <button 
+                  onClick={confirmDialog.onConfirm}
+                  className={cn(
+                    "flex-1 px-4 py-3 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-lg",
+                    confirmDialog.type === 'danger' ? "bg-red-600 shadow-red-200" : "bg-orange-600 shadow-orange-200"
+                  )}
+                >
+                  Confirm
+                </button>
               </div>
             </motion.div>
           </div>
@@ -825,4 +1034,6 @@ export default function Admin() {
       </AnimatePresence>
     </div>
   );
-}
+};
+
+export default Admin;

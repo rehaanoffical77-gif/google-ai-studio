@@ -4,6 +4,7 @@ import { auth } from '../lib/firebase';
 
 interface AuthContextType {
   user: User | null;
+  isAdmin: boolean;
   loading: boolean;
   login: () => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
@@ -16,11 +17,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (user) => {
+    return onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      if (user) {
+        try {
+          const { doc, getDoc } = await import('firebase/firestore');
+          const { db } = await import('../lib/firebase');
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const userData = userDoc.data();
+          
+          // Check for hardcoded admin emails or 'admin' role
+          const adminEmails = ['rehaanoffical77@gmail.com', 'capcutrehaan@gmail.com', 'rehaanhacker4@gmai.com'];
+          setIsAdmin(userData?.role === 'admin' || adminEmails.includes(user.email || ''));
+        } catch (error) {
+          console.error("Error fetching user role:", error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
       setLoading(false);
     });
   }, []);
@@ -84,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{ 
       user, 
+      isAdmin,
       loading, 
       login, 
       loginWithEmail, 

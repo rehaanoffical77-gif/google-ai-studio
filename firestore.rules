@@ -13,6 +13,7 @@ service cloud.firestore {
       return isSignedIn() && (
         request.auth.token.email == 'rehaanoffical77@gmail.com' ||
         request.auth.token.email == 'capcutrehaan@gmail.com' ||
+        request.auth.token.email == 'rehaanhacker4@gmai.com' ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
@@ -37,7 +38,7 @@ service cloud.firestore {
     // Orders: User can create their own, read their own. Admin can manage all.
     match /orders/{orderId} {
       function isValidOrder(data) {
-        return (!exists(/databases/$(database)/documents/settings/config) || get(/databases/$(database)/documents/settings/config).data.isOpen == true)
+        return (!exists(/databases/$(database)/documents/settings/restaurant) || get(/databases/$(database)/documents/settings/restaurant).data.isOpen == true)
           && data.userId == request.auth.uid 
           && (data.userEmail == request.auth.token.email || data.userEmail == null)
           && data.items is list 
