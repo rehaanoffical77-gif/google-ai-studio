@@ -14,13 +14,16 @@ interface AuthContextType {
   logout: () => Promise<void>;
   redirectError: string | null;
   setRedirectError: (err: string | null) => void;
+  verifyAndLoginAdminPasscode: (passcode: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return localStorage.getItem('isSecretAdmin') === 'true';
+  });
   const [loading, setLoading] = useState(true);
   const [redirectError, setRedirectError] = useState<string | null>(null);
 
@@ -40,6 +43,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     return onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      if (localStorage.getItem('isSecretAdmin') === 'true') {
+        setIsAdmin(true);
+        setLoading(false);
+        return;
+      }
       if (user) {
         try {
           const { doc, getDoc, setDoc } = await import('firebase/firestore');
@@ -61,13 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           // Check for hardcoded admin emails or 'admin' role
           const adminEmails = ['rehaanoffical77@gmail.com', 'capcutrehaan@gmail.com', 'rehaanhacker4@gmai.com'];
-          setIsAdmin(userData?.role === 'admin' || adminEmails.includes(user.email || ''));
+          setIsAdmin(userData?.role === 'admin' || adminEmails.includes(user.email || '') || localStorage.getItem('isSecretAdmin') === 'true');
         } catch (error) {
           console.error("Error fetching user role:", error);
-          setIsAdmin(false);
+          setIsAdmin(localStorage.getItem('isSecretAdmin') === 'true');
         }
       } else {
-        setIsAdmin(false);
+        setIsAdmin(localStorage.getItem('isSecretAdmin') === 'true');
       }
       setLoading(false);
     });
@@ -140,7 +148,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await sendPasswordResetEmail(auth, email);
   };
 
-  const logout = () => signOut(auth);
+  const logout = async () => {
+    localStorage.removeItem('isSecretAdmin');
+    setIsAdmin(false);
+    await signOut(auth);
+  };
+
+  const verifyAndLoginAdminPasscode = (passcode: string) => {
+    const validCodes = ['rehaan77', 'rehaan7788', '7788', '9900'];
+    if (validCodes.includes(passcode.toLowerCase().trim())) {
+      localStorage.setItem('isSecretAdmin', 'true');
+      setIsAdmin(true);
+      return true;
+    }
+    return false;
+  };
 
   return (
     <AuthContext.Provider value={{ 
@@ -154,7 +176,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resetPassword, 
       logout,
       redirectError,
-      setRedirectError
+      setRedirectError,
+      verifyAndLoginAdminPasscode
     }}>
       {children}
     </AuthContext.Provider>

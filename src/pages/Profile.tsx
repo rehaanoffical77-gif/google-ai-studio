@@ -1182,7 +1182,7 @@ export default function Profile() {
               </button>
             </form>
 
-            <div className="relative block">
+            <div className="relative hidden sm:block">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-100"></div>
               </div>
@@ -1191,7 +1191,7 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="hidden sm:block space-y-2">
               <button 
                 type="button"
                 onClick={async () => {

@@ -479,9 +479,9 @@ const Admin: React.FC = () => {
   if (!isAdmin) return null;
 
   return (
-    <div className="h-screen bg-[#F8FAFC] flex overflow-hidden">
-      {/* SaaS Sidebar */}
-      <aside className="w-24 bg-white border-r border-slate-200 flex flex-col items-center py-10 z-50 shrink-0">
+    <div className="h-screen bg-[#F8FAFC] flex overflow-hidden relative pb-16 md:pb-0">
+      {/* SaaS Sidebar (Hidden on mobile, flex on desktop) */}
+      <aside className="hidden md:flex w-24 bg-white border-r border-slate-200 flex-col items-center py-10 z-50 shrink-0">
         <div className="w-12 h-12 bg-red-600 rounded-[22px] flex items-center justify-center text-white mb-16 shadow-lg shadow-red-500/20 group cursor-pointer overflow-hidden relative">
           <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           <Utensils size={24} className="relative z-10" />
@@ -526,15 +526,49 @@ const Admin: React.FC = () => {
         </button>
       </aside>
 
+      {/* Modern SaaS Bottom Navigation Bar for Mobile Viewports */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 flex justify-around items-center py-2 px-1 shadow-2xl">
+        {[
+          { id: 'orders', label: 'Orders', icon: ShoppingBag },
+          { id: 'menu', label: 'Menu', icon: Utensils },
+          { id: 'customers', label: 'Guests', icon: Users },
+          { id: 'settings', label: 'Settings', icon: Settings },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={cn(
+                "flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl transition-all relative flex-1 min-w-0",
+                isActive ? "text-indigo-600 scale-[1.03]" : "text-slate-400"
+              )}
+            >
+              <Icon size={18} className={isActive ? "stroke-[2.5]" : "stroke-[1.5]"} />
+              <span className="text-[9px] font-extrabold uppercase tracking-widest leading-none text-center truncate w-full">
+                {item.label}
+              </span>
+              {isActive && (
+                <motion.div 
+                  layoutId="activeBottomTab" 
+                  className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-indigo-600 rounded-full" 
+                />
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Header */}
+        {/* Header (Fully Responsive height and paddings) */}
         <header className="bg-white border-b border-slate-200 shrink-0">
-          <div className="max-w-7xl mx-auto px-10 h-24 flex items-center justify-between">
+          <div className="max-w-7xl mx-auto px-4 sm:px-10 h-20 sm:h-24 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight italic uppercase">{activeTab} Panel</h1>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Operational Control Center</p>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight italic uppercase">{activeTab} Panel</h1>
+              <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 sm:mt-1">Operational Control Center</p>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 sm:gap-6">
               <div className="text-right hidden sm:block">
                 <p className="text-xs font-black text-slate-900">Restaurant Status</p>
                 <div className="flex items-center justify-end gap-2 mt-1">
@@ -544,14 +578,24 @@ const Admin: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <div className="w-10 h-10 border-2 border-slate-100 rounded-full flex items-center justify-center bg-slate-50 text-slate-900 font-bold text-xs shadow-sm">
+              
+              {/* Logout Button directly accessible on Mobile Header */}
+              <button 
+                onClick={handleLogout}
+                className="md:hidden w-9 h-9 sm:w-10 sm:h-10 bg-red-50 hover:bg-red-100 border border-red-100 text-red-500 rounded-xl flex items-center justify-center transition-colors active:scale-95 shrink-0"
+                title="Sign Out"
+              >
+                <LogOut size={16} />
+              </button>
+
+              <div className="w-9 h-9 sm:w-10 sm:h-10 border-2 border-slate-100 rounded-full flex items-center justify-center bg-slate-50 text-slate-900 font-bold text-xs shadow-sm shrink-0">
                 R
               </div>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-10 pb-28 sm:pb-10 custom-scrollbar">
           {activeTab === 'orders' ? (
             <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
               {/* Refined Stats Grid */}
@@ -651,7 +695,8 @@ const Admin: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* Desktop View: Wide Grid */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50/50 border-b border-slate-100">
                       <tr>
@@ -763,17 +808,119 @@ const Admin: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile View: High-Density Touch Cards List */}
+                <div className="md:hidden divide-y divide-slate-100">
+                  {filteredOrders.length === 0 ? (
+                    <div className="py-16 text-center text-slate-400 font-extrabold uppercase tracking-wider text-[10px] italic">
+                      No matching orders in feed
+                    </div>
+                  ) : (
+                    filteredOrders.map((order) => (
+                      <div key={order.id} className="p-4 space-y-3.5 hover:bg-slate-50/30 transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="text-xs font-black text-slate-900 tracking-tighter"># {order.id.slice(-6).toUpperCase()}</span>
+                            <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wide truncate max-w-[180px]">{order.userEmail}</p>
+                          </div>
+                          
+                          <div className={cn(
+                            "inline-flex px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border items-center gap-1 shrink-0",
+                            getStatusColor(order.status)
+                          )}>
+                            <div className={cn(
+                              "w-1 h-1 rounded-full",
+                              order.status === 'received' ? 'bg-blue-500' :
+                              order.status === 'preparing' ? 'bg-orange-500' :
+                              order.status === 'ready' ? 'bg-purple-500' :
+                              order.status === 'on the way' ? 'bg-indigo-500' :
+                              order.status === 'delivered' ? 'bg-green-500' : 'bg-red-500'
+                            )} />
+                            {order.status}
+                          </div>
+                        </div>
+
+                        {/* Order Items Summary */}
+                        <div className="bg-slate-50/65 rounded-xl p-3 border border-slate-100/50">
+                          <p className="text-xs font-bold text-slate-700 italic leading-relaxed">{getOrderItemsList(order)}</p>
+                          <p className="text-xs font-black text-indigo-600 mt-1.5">₹{order.total?.toFixed(2)}</p>
+                        </div>
+
+                        {/* Order Logistics */}
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <input 
+                              type="text"
+                              defaultValue={order.deliveryPartnerPhone || ''} 
+                              placeholder="Pilot Phone"
+                              onBlur={(e) => updateOrderInfo(order.id, { deliveryPartnerPhone: e.target.value })} 
+                              className="w-full bg-slate-50/50 border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 text-[10px] font-bold outline-none focus:border-indigo-500 transition-all placeholder:text-slate-350" 
+                            />
+                            {order.deliveryPartnerPhone && (
+                              <a 
+                                href={`tel:${order.deliveryPartnerPhone}`} 
+                                className="absolute right-2 px-1 top-1/2 -translate-y-1/2 text-indigo-600"
+                                title="Call Pilot"
+                              >
+                                <Phone size={11} />
+                              </a>
+                            )}
+                          </div>
+                          <CancellationTimer order={order} />
+                        </div>
+
+                        {/* Interactive Buttons with premium tactile padding */}
+                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-dashed border-slate-100">
+                          <button 
+                            onClick={() => setSelectedOrder(order)} 
+                            className="px-4 py-2 bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shrink-0"
+                          >
+                            Details
+                          </button>
+
+                          {['received', 'preparing', 'ready', 'on the way'].includes(order.status) && (
+                            <button 
+                              onClick={() => {
+                                const nextStatusMap: Record<string, string> = {
+                                  'received': 'preparing',
+                                  'preparing': 'ready',
+                                  'ready': 'on the way',
+                                  'on the way': 'delivered'
+                                };
+                                updateOrderStatus(order.id, nextStatusMap[order.status]);
+                              }}
+                              className="flex-1 py-1.5 bg-indigo-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all flex items-center justify-center gap-1 shadow-md shadow-indigo-100 shrink-0"
+                            >
+                              <CheckCircle2 size={11} />
+                              Next Stage
+                            </button>
+                          )}
+
+                          {['received', 'preparing'].includes(order.status) && (
+                            <button 
+                              onClick={() => cancelOrder(order.id)}
+                              className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all shrink-0"
+                              title="Cancel Order"
+                            >
+                              <XCircle size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           ) : activeTab === 'menu' ? (
-            <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-              <div className="flex flex-col lg:flex-row justify-between lg:items-center bg-white p-6 sm:p-8 rounded-[40px] border border-gray-100 shadow-sm gap-6">
+             <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
+              <div className="flex flex-col lg:flex-row justify-between lg:items-center bg-white p-4 sm:p-8 rounded-[24px] sm:rounded-[40px] border border-gray-100 shadow-sm gap-4 sm:gap-6">
                 <div>
-                  <h3 className="text-2xl font-black text-gray-900 italic uppercase">Culinary Menu</h3>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Manage dishes and availability</p>
+                  <h3 className="text-xl sm:text-2xl font-black text-gray-900 italic uppercase">Culinary Menu</h3>
+                  <p className="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5 sm:mt-1">Manage dishes and availability</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="relative group min-w-[200px]">
+                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
+                  <div className="relative group min-w-0 sm:min-w-[200px] flex-1">
                     <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                     <input 
                       type="text" 
@@ -783,7 +930,7 @@ const Admin: React.FC = () => {
                       className="bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-[11px] font-bold outline-none focus:bg-white focus:border-indigo-500 transition-all w-full"
                     />
                   </div>
-                  <div className="relative h-10 min-w-[140px]">
+                  <div className="relative h-10 min-w-0 sm:min-w-[140px] flex-1 sm:flex-initial">
                     <select 
                       value={menuCategoryFilter}
                       onChange={(e) => setMenuCategoryFilter(e.target.value)}
@@ -798,7 +945,7 @@ const Admin: React.FC = () => {
                     </select>
                     <Filter size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   </div>
-                  <div className="relative h-10 min-w-[120px]">
+                  <div className="relative h-10 min-w-0 sm:min-w-[120px] flex-1 sm:flex-initial">
                     <select 
                       value={menuAvailabilityFilter}
                       onChange={(e) => setMenuAvailabilityFilter(e.target.value)}
@@ -812,7 +959,7 @@ const Admin: React.FC = () => {
                   </div>
                   <button 
                     onClick={() => setIsAddingMenuItem(true)}
-                    className="h-10 bg-gray-900 text-white px-6 rounded-xl font-black italic text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-gray-900/10 flex items-center gap-2"
+                    className="h-10 bg-gray-900 text-white px-6 rounded-xl font-black italic text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-gray-900/10 flex items-center justify-center gap-2 shrink-0"
                   >
                     <Plus size={16} />
                     Add Dish
@@ -866,33 +1013,33 @@ const Admin: React.FC = () => {
             </div>
           </div>
         ) : activeTab === 'customers' ? (
-            <div className="max-w-7xl mx-auto bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-              <div className="p-10 border-b border-gray-50 bg-gradient-to-r from-gray-50/50 to-transparent">
-                <h3 className="text-2xl font-black text-gray-900 italic uppercase">VIP Guests</h3>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Total Audience Reach</p>
+            <div className="max-w-7xl mx-auto bg-white rounded-[24px] sm:rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
+              <div className="p-6 sm:p-10 border-b border-gray-50 bg-gradient-to-r from-gray-50/50 to-transparent">
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 italic uppercase">VIP Guests</h3>
+                <p className="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5 sm:mt-1">Total Audience Reach</p>
               </div>
               <div className="divide-y divide-gray-50">
                 {customers.sort((a, b) => ((b as any).role === 'admin' ? 1 : -1)).map(c => (
-                  <div key={c.id} className="p-8 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-5">
+                  <div key={c.id} className="p-5 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
+                    <div className="flex items-center gap-4 sm:gap-5">
                       <div className={cn(
-                        "w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black italic shadow-lg",
+                        "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-white text-lg font-black italic shadow-lg shrink-0",
                         (c as any).role === 'admin' ? "bg-indigo-600 shadow-indigo-500/10" : "bg-red-500 shadow-red-500/10"
                       )}>
                         {c.email?.[0].toUpperCase()}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <p className="font-black text-gray-900 italic tracking-tight text-lg leading-none">{c.displayName || c.name || 'Anonymous Guest'}</p>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-3">
+                          <p className="font-black text-gray-900 italic tracking-tight text-base sm:text-lg leading-none truncate max-w-[200px]">{c.displayName || c.name || 'Anonymous Guest'}</p>
                           {(c as any).role === 'admin' && (
-                            <span className="bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase px-2 py-0.5 rounded-md border border-indigo-100 tracking-[0.2em]">Management</span>
+                            <span className="bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase px-2 py-0.5 rounded-md border border-indigo-100 tracking-[0.2em] shrink-0">Management</span>
                           )}
                         </div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">{c.email}</p>
+                        <p className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1 truncate max-w-[220px]">{c.email}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Contact Detail</p>
+                    <div className="text-left sm:text-right pl-16 sm:pl-0">
+                       <p className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5 sm:mb-1.5">Contact Detail</p>
                        <p className="text-sm font-black text-gray-900 italic tracking-tight">{c.phone || 'No Phone Link'}</p>
                     </div>
                   </div>

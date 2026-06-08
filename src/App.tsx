@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Checkout from './pages/Checkout';
 import Admin from './pages/Admin';
+import SecretAdmin from './pages/SecretAdmin';
 import SplashScreen from './components/SplashScreen';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/owner" element={<Admin />} />
+            <Route path="/secret-admin" element={<SecretAdmin />} />
           </Routes>
         </BrowserRouter>
       </CartProvider>
