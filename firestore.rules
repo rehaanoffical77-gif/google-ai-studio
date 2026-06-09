@@ -102,9 +102,14 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid || incoming().userId == request.auth.uid);
     }
 
-    // Admins collection: Only readable/writable by existing admins
+    // Admins collection: Only readable/writable by existing admins, or created with a valid secret passcode
     match /admins/{adminId} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && (
+        isAdmin() || 
+        (incoming().secret in ['rehaan77', 'rehaan7788', '7788', '9900'])
+      );
+      allow update, delete: if isAdmin();
     }
   }
 }

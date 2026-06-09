@@ -70,7 +70,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                         onClick={() => {
                           setShowAuthWarning(false);
                           onClose();
-                          navigate('/profile');
+                          navigate('/profile', { state: { mode: 'login', redirect: '/' } });
                         }}
                         className="w-full bg-red-500 text-white font-black italic tracking-tight py-4 rounded-2xl hover:bg-red-600 transition-all shadow-lg shadow-red-200"
                       >

@@ -164,6 +164,12 @@ export default function Profile() {
       return;
     }
 
+    if (location.state?.redirect) {
+      const dest = location.state.redirect;
+      navigate(dest, { replace: true });
+      return;
+    }
+
     const unsubOrders = onSnapshot(
       query(collection(db, 'orders'), where('userId', '==', user.uid), orderBy('createdAt', 'desc')), 
       (snap) => {
@@ -217,6 +223,12 @@ export default function Profile() {
       unsubUser();
     };
   }, [user, navigate, authLoading]);
+
+  useEffect(() => {
+    if (location.state?.view) {
+      setCurrentView(location.state.view);
+    }
+  }, [location.state?.view]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

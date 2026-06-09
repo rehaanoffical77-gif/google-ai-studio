@@ -123,23 +123,47 @@ const Admin: React.FC = () => {
 
   useEffect(() => {
     if (!isAdmin) return;
-    const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc')), (snapshot) => {
-      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
-    });
-
-    const unsubMenu = onSnapshot(collection(db, 'menu'), (snapshot) => {
-      setMenuItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem)));
-    });
-
-    const unsubCustomers = onSnapshot(collection(db, 'users'), (snapshot) => {
-      setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer)));
-    });
-
-    const unsubSettings = onSnapshot(doc(db, 'settings', 'restaurant'), (doc) => {
-      if (doc.exists()) {
-        setIsRestaurantOpen(doc.data().isOpen !== false);
+    const unsubOrders = onSnapshot(
+      query(collection(db, 'orders'), orderBy('createdAt', 'desc')), 
+      (snapshot) => {
+        setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+      },
+      (error) => {
+        console.error("Firestore Orders Subscription Error:", error);
       }
-    });
+    );
+
+    const unsubMenu = onSnapshot(
+      collection(db, 'menu'), 
+      (snapshot) => {
+        setMenuItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem)));
+      },
+      (error) => {
+        console.error("Firestore Menu Subscription Error:", error);
+      }
+    );
+
+    const unsubCustomers = onSnapshot(
+      collection(db, 'users'), 
+      (snapshot) => {
+        setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer)));
+      },
+      (error) => {
+        console.error("Firestore Customers Subscription Error:", error);
+      }
+    );
+
+    const unsubSettings = onSnapshot(
+      doc(db, 'settings', 'restaurant'), 
+      (doc) => {
+        if (doc.exists()) {
+          setIsRestaurantOpen(doc.data().isOpen !== false);
+        }
+      },
+      (error) => {
+        console.error("Firestore Restaurant Settings Subscription Error:", error);
+      }
+    );
 
     return () => {
       unsubOrders();
@@ -147,7 +171,7 @@ const Admin: React.FC = () => {
       unsubCustomers();
       unsubSettings();
     };
-  }, []);
+  }, [isAdmin]);
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -417,9 +441,9 @@ const Admin: React.FC = () => {
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.address?.street?.toLowerCase().includes(searchQuery.toLowerCase());
+      (order.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.userEmail || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.address?.street || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     

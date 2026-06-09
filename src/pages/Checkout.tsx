@@ -138,7 +138,7 @@ export default function Checkout() {
   useEffect(() => {
     if (!user) {
       alert("Please login to place an order.");
-      navigate('/profile');
+      navigate('/profile', { state: { mode: 'login', redirect: '/checkout' } });
       return;
     }
 
@@ -304,7 +304,7 @@ export default function Checkout() {
         transition={{ delay: 1.2 }}
         className="mt-8 text-center text-white font-sans"
       >
-        <h2 className="text-3xl font-black italic tracking-tighter mb-2">PAYMENT SUCCESS!</h2>
+        <h2 className="text-3xl font-black italic tracking-tighter mb-2">ORDER PLACED!</h2>
         <p className="text-sm font-bold opacity-80 uppercase tracking-widest">Finalizing your order...</p>
       </motion.div>
 
@@ -777,7 +777,7 @@ export default function Checkout() {
             disabled={!selectedPayment && !isCOD}
             className="w-full h-14 bg-gradient-to-r from-[#FF2B2B] to-[#E31837] disabled:opacity-50 text-white rounded-2xl font-bold text-sm shadow-lg shadow-red-100 active:scale-95 flex items-center justify-between px-6"
           >
-            <span className="flex items-center gap-2">Pay & Place Order <ChevronRight size={18} /></span>
+            <span className="flex items-center gap-2">Place Order <ChevronRight size={18} /></span>
             <span className="font-black text-base">₹{(finalTotal + PACKAGING_FEE).toFixed(2)}</span>
           </button>
         </div>

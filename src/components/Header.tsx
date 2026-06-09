@@ -64,12 +64,12 @@ export default function Header({ onCartClick }: { onCartClick?: () => void }) {
 
   const menuItems = [
     ...(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()) ? [{ icon: LayoutDashboard, label: 'Admin Panel', onClick: () => navigate('/owner') }] : []),
-    { icon: ClipboardList, label: 'My Orders', onClick: () => navigate('/profile') },
-    { icon: Heart, label: 'Favorite Orders', onClick: () => navigate('/profile') },
-    { icon: Map, label: 'Address Book', onClick: () => navigate('/profile') },
-    { icon: CreditCard, label: 'Payments', onClick: () => navigate('/profile') },
-    { icon: HelpCircle, label: 'Online Ordering Help', onClick: () => navigate('/profile') },
-    { icon: Settings, label: 'Settings', onClick: () => navigate('/profile') },
+    { icon: ClipboardList, label: 'My Orders', onClick: () => navigate('/profile', { state: { view: 'orders' } }) },
+    { icon: Heart, label: 'Favorite Orders', onClick: () => navigate('/profile', { state: { view: 'favorites' } }) },
+    { icon: Map, label: 'Address Book', onClick: () => navigate('/profile', { state: { view: 'addresses' } }) },
+    { icon: CreditCard, label: 'Payments', onClick: () => navigate('/profile', { state: { view: 'payments' } }) },
+    { icon: HelpCircle, label: 'Online Ordering Help', onClick: () => navigate('/profile', { state: { view: 'support' } }) },
+    { icon: Settings, label: 'Settings', onClick: () => navigate('/profile', { state: { view: 'settings' } }) },
   ];
 
   return (
@@ -84,7 +84,7 @@ export default function Header({ onCartClick }: { onCartClick?: () => void }) {
             Food Junction
           </h1>
           <div 
-            onClick={() => navigate('/profile')}
+            onClick={() => navigate('/profile', { state: { view: 'addresses' } })}
             className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50/80 px-2.5 py-1.5 rounded-lg border border-gray-100/50 max-w-[180px] md:max-w-none cursor-pointer hover:bg-red-50/50 transition-colors"
           >
             <MapPin size={16} className="text-red-500 shrink-0" />

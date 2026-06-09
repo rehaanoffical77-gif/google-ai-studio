@@ -31,15 +31,21 @@ export default function SecretAdmin() {
     setLoading(true);
 
     // Short timeout for high-end tactical terminal loading effect
-    setTimeout(() => {
-      const success = verifyAndLoginAdminPasscode(passcode);
-      if (success) {
-        navigate('/owner');
-      } else {
-        setError('ACCESS DENIED: INVALIID PASSCODE SIGNATURE');
-        setPasscode('');
+    setTimeout(async () => {
+      try {
+        const success = await verifyAndLoginAdminPasscode(passcode);
+        if (success) {
+          navigate('/owner');
+        } else {
+          setError('ACCESS DENIED: INVALIID PASSCODE SIGNATURE');
+          setPasscode('');
+        }
+      } catch (err) {
+        console.error(err);
+        setError('Verification failed');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }, 600);
   };
 

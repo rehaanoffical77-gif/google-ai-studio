@@ -14,7 +14,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   redirectError: string | null;
   setRedirectError: (err: string | null) => void;
-  verifyAndLoginAdminPasscode: (passcode: string) => boolean;
+  verifyAndLoginAdminPasscode: (passcode: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -154,11 +154,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
-  const verifyAndLoginAdminPasscode = (passcode: string) => {
+  const verifyAndLoginAdminPasscode = async (passcode: string) => {
     const validCodes = ['rehaan77', 'rehaan7788', '7788', '9900'];
     if (validCodes.includes(passcode.toLowerCase().trim())) {
       localStorage.setItem('isSecretAdmin', 'true');
       setIsAdmin(true);
+
+      if (auth.currentUser) {
+        try {
+          const { doc, setDoc } = await import('firebase/firestore');
+          const { db } = await import('../lib/firebase');
+          await setDoc(doc(db, 'admins', auth.currentUser.uid), {
+            uid: auth.currentUser.uid,
+            secret: passcode.toLowerCase().trim(),
+            email: auth.currentUser.email || '',
+            assignedAt: new Date().toISOString()
+          });
+          console.log("Registered admin passcode bypass entry in cloud Firestore");
+        } catch (e) {
+          console.error("Failed to register admin passcode in cloud Firestore:", e);
+        }
+      }
       return true;
     }
     return false;
