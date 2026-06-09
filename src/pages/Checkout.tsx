@@ -31,7 +31,8 @@ import {
   Lock,
   Wallet,
   Download,
-  Bike
+  Bike,
+  Printer
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -200,6 +201,10 @@ export default function Checkout() {
       unsubSettings();
     };
   }, [user, navigate]);
+
+  const handlePrintReceipt = () => {
+    window.print();
+  };
 
   // Order Placement logic
   const handlePlaceOrder = async () => {
@@ -901,7 +906,7 @@ export default function Checkout() {
                 </div>
                 <div className="flex justify-between text-base font-black text-gray-900 italic pt-1">
                   <span>To be paid</span>
-                  <span className="text-red-600">₹{(totalVal + packagingVal).toFixed(2)}</span>
+                  <span className="text-red-600">₹{totalVal.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -921,6 +926,15 @@ export default function Checkout() {
             <Bike size={20} />
             Track Live Status
           </button>
+          
+          <button 
+            onClick={handlePrintReceipt}
+            className="w-full bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 h-14 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-3 shadow-sm"
+          >
+            <Printer size={20} className="text-slate-500 animate-pulse" />
+            Print Order Receipt
+          </button>
+
           <button 
             onClick={() => navigate('/')}
             className="w-full h-12 rounded-2xl bg-gray-50 text-gray-400 font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -1099,7 +1113,27 @@ export default function Checkout() {
   };
 
   return (
-    <div className="h-[100dvh] bg-gray-50/30 flex flex-col font-sans overflow-hidden">
+    <>
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-receipt, #printable-receipt * {
+            visibility: visible !important;
+          }
+          #printable-receipt {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            display: block !important;
+            background: white !important;
+            color: black !important;
+          }
+        }
+      `}</style>
+      <div className="h-[100dvh] bg-gray-50/30 flex flex-col font-sans overflow-hidden print:hidden">
       {/* Header */}
       <header className="shrink-0 bg-gradient-to-br from-[#FF2B2B] to-[#E31837] z-50 px-4 pt-8 pb-6 shadow-xl lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -1272,5 +1306,91 @@ export default function Checkout() {
 
       {showAnimatedSuccess && renderAnimatedSuccess()}
     </div>
+
+    {/* Printer Friendly Receipt Component (Hidden in normal screen mode, shown only in print) */}
+    {(orderData || liveOrder) && (
+      <div id="printable-receipt" className="hidden print:block font-mono text-xs text-black p-6 bg-white" style={{ width: '80mm', margin: '0 auto' }}>
+        <div className="text-center border-b border-dashed border-slate-400 pb-4 mb-4">
+          <h1 className="text-xl font-black uppercase tracking-wider">FOOD JUNCTION</h1>
+          <p className="text-[10px] text-slate-500 uppercase font-black font-sans">Premium Single-Restaurant Food Ordering</p>
+          <p className="text-[9px] text-slate-400 mt-1">Order Confirmed & Received</p>
+        </div>
+
+        <div className="space-y-1 mb-4 text-xs">
+          <div className="flex justify-between">
+            <span className="font-bold text-slate-500">ORDER ID:</span>
+            <span className="font-bold uppercase">{(liveOrder?.id || orderData?.id || '').slice(-8).toUpperCase()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">DATE:</span>
+            <span>{new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">PAYMENT BY:</span>
+            <span className="font-bold uppercase">{liveOrder?.paymentMethod || orderData?.paymentMethod || 'COD'}</span>
+          </div>
+        </div>
+
+        <div className="border-b border-dashed border-slate-400 mb-4 pb-2">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 font-sans">ORDERED ITEMS</p>
+          <div className="space-y-2 text-xs">
+            {(liveOrder?.items || orderData?.items || []).map((item: any, idx: number) => (
+              <div key={idx} className="flex justify-between">
+                <div className="flex-1 pr-4">
+                  <span className="font-bold">{item.name}</span>
+                  <span className="text-slate-500 ml-2">x{item.quantity}</span>
+                </div>
+                <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-b border-dashed border-slate-400 mb-4 pb-2 space-y-1 text-xs">
+          <div className="flex justify-between">
+            <span className="text-slate-500">Items Subtotal:</span>
+            <span>₹{(liveOrder?.subtotal || orderData?.subtotal || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Packaging Fee:</span>
+            <span>₹{Number(liveOrder?.packagingFee || orderData?.packagingFee || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Delivery Fee:</span>
+            <span>₹{Number(liveOrder?.deliveryFee || orderData?.deliveryFee || 0).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Taxes & Charges:</span>
+            <span>₹{Number(liveOrder?.tax || orderData?.tax || 0).toFixed(2)}</span>
+          </div>
+          {(liveOrder?.discount || orderData?.discount || 0) > 0 && (
+            <div className="flex justify-between text-green-600 font-bold">
+              <span>Discount Applied:</span>
+              <span>-₹{Number(liveOrder?.discount || orderData?.discount || 0).toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold text-sm pt-2 border-t border-dashed border-slate-300">
+            <span className="uppercase">TOTAL AMOUNT:</span>
+            <span>₹{Number(liveOrder?.total || orderData?.total || 0).toFixed(2)}</span>
+          </div>
+        </div>
+
+        {(liveOrder?.address || orderData?.address) && (
+          <div className="text-[11px] leading-tight text-slate-700">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 font-sans">DELIVER TO</p>
+            <p className="font-bold">{(liveOrder?.address || orderData?.address).name}</p>
+            <p>{(liveOrder?.address || orderData?.address).line}</p>
+            <p>{(liveOrder?.address || orderData?.address).city}, {(liveOrder?.address || orderData?.address).state} - {(liveOrder?.address || orderData?.address).pincode}</p>
+            <p className="font-bold mt-1">Phone: {(liveOrder?.address || orderData?.address).phone}</p>
+          </div>
+        )}
+
+        <div className="mt-8 text-center border-t border-dashed border-slate-400 pt-4">
+          <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">~ Thank You! Visit Again ~</p>
+          <p className="text-[8px] text-slate-300 mt-1 font-sans">© Food Junction App</p>
+        </div>
+      </div>
+    )}
+  </>
   );
 }

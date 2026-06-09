@@ -16,6 +16,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
   const [deliveryFee, setDeliveryFee] = useState<number>(40);
   const [packagingFee, setPackagingFee] = useState<number>(20);
   const [taxRate, setTaxRate] = useState<number>(0.05);
+  const [isRestaurantOpen, setIsRestaurantOpen] = useState<boolean>(true);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -27,6 +28,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
           if (data.deliveryFee !== undefined) setDeliveryFee(Number(data.deliveryFee));
           if (data.packagingFee !== undefined) setPackagingFee(Number(data.packagingFee));
           if (data.taxRate !== undefined) setTaxRate(Number(data.taxRate) / 100);
+          if (data.isOpen !== undefined) setIsRestaurantOpen(!!data.isOpen);
         }
       } catch (err) {
         console.error("Error fetching restaurant settings in CartDrawer:", err);
@@ -192,6 +194,10 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                 </div>
                 <button 
                   onClick={() => {
+                    if (!isRestaurantOpen) {
+                      alert("Sorry! Our restaurant is currently closed and we are not accepting new orders at this time. You can still add items to your cart or explore our menu, but checkout is disabled until we reopen.");
+                      return;
+                    }
                     if (!user) {
                       setShowAuthWarning(true);
                       return;
