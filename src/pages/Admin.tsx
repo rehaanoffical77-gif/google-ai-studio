@@ -33,6 +33,7 @@ import {
   orderBy, 
   doc, 
   updateDoc, 
+  setDoc,
   deleteDoc, 
   addDoc,
   getDocs,
@@ -298,16 +299,22 @@ const Admin: React.FC = () => {
   const toggleRestaurantStatus = async () => {
     const nextStatus = !isRestaurantOpen;
     setIsRestaurantOpen(nextStatus);
-    await updateDoc(doc(db, 'settings', 'restaurant'), { isOpen: nextStatus });
+    try {
+      await setDoc(doc(db, 'settings', 'restaurant'), { isOpen: nextStatus }, { merge: true });
+    } catch (error: any) {
+      setIsRestaurantOpen(!nextStatus); // Revert state on error
+      console.error('Error toggling restaurant status:', error);
+      alert('Failed to update restaurant status: ' + error.message);
+    }
   };
 
   const saveFeesAndTaxes = async (delFee: number, packFee: number, tRate: number) => {
     try {
-      await updateDoc(doc(db, 'settings', 'restaurant'), {
+      await setDoc(doc(db, 'settings', 'restaurant'), {
         deliveryFee: delFee,
         packagingFee: packFee,
         taxRate: tRate
-      });
+      }, { merge: true });
       alert("Taxes & Extra Fees updated successfully!");
     } catch (error: any) {
       alert("Failed to update fees and taxes: " + error.message);
