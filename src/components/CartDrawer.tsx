@@ -1,16 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart as useCartState } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ShoppingBag, ChevronRight, X, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { items, total, updateQuantity, removeFromCart, clearCart } = useCartState();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showAuthWarning, setShowAuthWarning] = useState(false);
+
+  const [deliveryFee, setDeliveryFee] = useState<number>(40);
+  const [packagingFee, setPackagingFee] = useState<number>(20);
+  const [taxRate, setTaxRate] = useState<number>(0.05);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchSettings = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'settings', 'restaurant'));
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.deliveryFee !== undefined) setDeliveryFee(Number(data.deliveryFee));
+          if (data.packagingFee !== undefined) setPackagingFee(Number(data.packagingFee));
+          if (data.taxRate !== undefined) setTaxRate(Number(data.taxRate) / 100);
+        }
+      } catch (err) {
+        console.error("Error fetching restaurant settings in CartDrawer:", err);
+      }
+    };
+    fetchSettings();
+  }, [isOpen]);
+
+  const tax = Math.round(total * taxRate);
+  const grandTotal = total + tax + deliveryFee + packagingFee;
 
   return (
     <AnimatePresence>
@@ -140,10 +166,29 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
             </div>
 
             {items.length > 0 && (
-              <div className="p-6 border-t border-gray-100 bg-gray-50">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-gray-600 font-medium">Grand Total</span>
-                  <span className="text-2xl font-black text-gray-900">₹{total}</span>
+              <div className="p-6 border-t border-gray-100 bg-gray-50 space-y-4">
+                <div className="space-y-2 border-b border-dashed border-gray-200 pb-3">
+                  <div className="flex justify-between items-center text-xs text-gray-500 font-medium">
+                    <span>Subtotal</span>
+                    <span>₹{total.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-gray-500 font-medium">
+                    <span>Restaurant Packaging</span>
+                    <span>₹{packagingFee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-gray-500 font-medium">
+                    <span>Delivery Fee</span>
+                    <span className="text-green-600">₹{deliveryFee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-gray-500 font-medium">
+                    <span>Taxes & Charges ({Math.round(taxRate * 100)}%)</span>
+                    <span>₹{tax.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-900 font-black italic tracking-tight uppercase text-xs">Total Amount</span>
+                  <span className="text-2xl font-black text-red-600 italic">₹{grandTotal.toFixed(2)}</span>
                 </div>
                 <button 
                   onClick={() => {

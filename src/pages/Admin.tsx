@@ -99,6 +99,9 @@ const Admin: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isRestaurantOpen, setIsRestaurantOpen] = useState(true);
+  const [deliveryFee, setDeliveryFee] = useState<number>(40);
+  const [packagingFee, setPackagingFee] = useState<number>(20);
+  const [taxRate, setTaxRate] = useState<number>(5);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -157,7 +160,11 @@ const Admin: React.FC = () => {
       doc(db, 'settings', 'restaurant'), 
       (doc) => {
         if (doc.exists()) {
-          setIsRestaurantOpen(doc.data().isOpen !== false);
+          const data = doc.data();
+          setIsRestaurantOpen(data.isOpen !== false);
+          if (data.deliveryFee !== undefined) setDeliveryFee(Number(data.deliveryFee));
+          if (data.packagingFee !== undefined) setPackagingFee(Number(data.packagingFee));
+          if (data.taxRate !== undefined) setTaxRate(Number(data.taxRate));
         }
       },
       (error) => {
@@ -292,6 +299,19 @@ const Admin: React.FC = () => {
     const nextStatus = !isRestaurantOpen;
     setIsRestaurantOpen(nextStatus);
     await updateDoc(doc(db, 'settings', 'restaurant'), { isOpen: nextStatus });
+  };
+
+  const saveFeesAndTaxes = async (delFee: number, packFee: number, tRate: number) => {
+    try {
+      await updateDoc(doc(db, 'settings', 'restaurant'), {
+        deliveryFee: delFee,
+        packagingFee: packFee,
+        taxRate: tRate
+      });
+      alert("Taxes & Extra Fees updated successfully!");
+    } catch (error: any) {
+      alert("Failed to update fees and taxes: " + error.message);
+    }
   };
 
   const [isPurging, setIsPurging] = useState(false);
@@ -502,6 +522,14 @@ const Admin: React.FC = () => {
 
   if (!isAdmin) return null;
 
+  const adminEmails = ['rehaanoffical77@gmail.com', 'capcutrehaan@gmail.com', 'rehaanhacker4@gmai.com'];
+  const realCustomersList = customers.filter(c => {
+    const email = (c.email || '').toLowerCase().trim();
+    const isAdminRole = (c as any).role === 'admin';
+    const isAdminEmail = adminEmails.includes(email);
+    return !isAdminRole && !isAdminEmail;
+  });
+
   return (
     <div className="h-screen bg-[#F8FAFC] flex overflow-hidden relative pb-16 md:pb-0">
       {/* SaaS Sidebar (Hidden on mobile, flex on desktop) */}
@@ -628,7 +656,7 @@ const Admin: React.FC = () => {
                   { label: 'Active Orders', value: orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length, icon: Clock, color: 'indigo' },
                   { label: 'Total Revenue', value: '₹' + orders.filter(o => o.status === 'delivered').reduce((acc, o) => acc + (o.total || 0), 0).toLocaleString(), icon: BarChart3, color: 'blue' },
                   { label: 'Sold Out', value: menuItems.filter(i => i.isAvailable === false).length, icon: AlertCircle, color: 'red' },
-                  { label: 'Total Guests', value: customers.filter(c => !['admin'].includes((c as any).role)).length, icon: Users, color: 'slate' },
+                  { label: 'Total Guests', value: realCustomersList.length, icon: Users, color: 'slate' },
                 ].map((stat, i) => (
                   <div key={i} className="bg-white px-6 py-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
                     <div className={cn(
@@ -773,22 +801,32 @@ const Admin: React.FC = () => {
                             </td>
                             <td className="px-6 py-5">
                               <div className="flex items-center gap-2">
-                                <div className="relative">
-                                  <input 
-                                    defaultValue={order.deliveryPartnerPhone || ''} 
-                                    placeholder="Pilot Phone"
-                                    onBlur={(e) => updateOrderInfo(order.id, { deliveryPartnerPhone: e.target.value })} 
-                                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 w-32 text-[10px] font-bold outline-none focus:border-indigo-500 transition-all" 
-                                  />
-                                  {order.deliveryPartnerPhone && (
-                                    <a 
-                                      href={`tel:${order.deliveryPartnerPhone}`} 
-                                      className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-600"
-                                      title="Call Pilot"
-                                    >
-                                      <Phone size={12} />
-                                    </a>
-                                  )}
+                                <div className="flex flex-col gap-1.5">
+                                  <div className="relative">
+                                    <input 
+                                      defaultValue={order.deliveryPartnerName || ''} 
+                                      placeholder="Rider Name"
+                                      onBlur={(e) => updateOrderInfo(order.id, { deliveryPartnerName: e.target.value })} 
+                                      className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 w-32 text-[10px] font-bold outline-none focus:border-indigo-500 transition-all placeholder:text-slate-350" 
+                                    />
+                                  </div>
+                                  <div className="relative">
+                                    <input 
+                                      defaultValue={order.deliveryPartnerPhone || ''} 
+                                      placeholder="Rider Phone"
+                                      onBlur={(e) => updateOrderInfo(order.id, { deliveryPartnerPhone: e.target.value })} 
+                                      className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 w-32 text-[10px] font-bold outline-none focus:border-indigo-500 transition-all placeholder:text-slate-350" 
+                                    />
+                                    {order.deliveryPartnerPhone && (
+                                      <a 
+                                        href={`tel:${order.deliveryPartnerPhone}`} 
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-600"
+                                        title="Call Rider"
+                                      >
+                                        <Phone size={12} />
+                                      </a>
+                                    )}
+                                  </div>
                                 </div>
                                 <CancellationTimer order={order} />
                               </div>
@@ -871,12 +909,19 @@ const Admin: React.FC = () => {
                         </div>
 
                         {/* Order Logistics */}
-                        <div className="flex items-center gap-2">
-                          <div className="relative flex-1">
+                        <div className="flex flex-col gap-1.5 w-full">
+                          <input 
+                            type="text"
+                            defaultValue={order.deliveryPartnerName || ''} 
+                            placeholder="Rider Name"
+                            onBlur={(e) => updateOrderInfo(order.id, { deliveryPartnerName: e.target.value })} 
+                            className="w-full bg-slate-50/50 border border-slate-200 rounded-lg px-3 py-1.5 text-[10px] font-bold outline-none focus:border-indigo-500 transition-all placeholder:text-slate-350" 
+                          />
+                          <div className="relative w-full">
                             <input 
                               type="text"
                               defaultValue={order.deliveryPartnerPhone || ''} 
-                              placeholder="Pilot Phone"
+                              placeholder="Rider Phone"
                               onBlur={(e) => updateOrderInfo(order.id, { deliveryPartnerPhone: e.target.value })} 
                               className="w-full bg-slate-50/50 border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 text-[10px] font-bold outline-none focus:border-indigo-500 transition-all placeholder:text-slate-350" 
                             />
@@ -884,7 +929,7 @@ const Admin: React.FC = () => {
                               <a 
                                 href={`tel:${order.deliveryPartnerPhone}`} 
                                 className="absolute right-2 px-1 top-1/2 -translate-y-1/2 text-indigo-600"
-                                title="Call Pilot"
+                                title="Call Rider"
                               >
                                 <Phone size={11} />
                               </a>
@@ -1043,7 +1088,7 @@ const Admin: React.FC = () => {
                 <p className="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5 sm:mt-1">Total Audience Reach</p>
               </div>
               <div className="divide-y divide-gray-50">
-                {customers.sort((a, b) => ((b as any).role === 'admin' ? 1 : -1)).map(c => (
+                {realCustomersList.map(c => (
                   <div key={c.id} className="p-5 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
                     <div className="flex items-center gap-4 sm:gap-5">
                       <div className={cn(
@@ -1092,6 +1137,53 @@ const Admin: React.FC = () => {
                       animate={{ x: isRestaurantOpen ? 24 : 0 }}
                       className="w-6 h-6 bg-white rounded-full shadow-sm" 
                     />
+                  </div>
+                </div>
+
+                {/* Taxes & Extra Fees Configuration Section */}
+                <div className="border border-slate-200 rounded-[32px] p-6 text-left space-y-4">
+                  <div>
+                    <h4 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Taxes & Extra Fees</h4>
+                    <p className="text-[10px] text-slate-400 leading-normal">Dynamic controls to manage packaging fees, delivery charges, and ordering tax percentage.</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Delivery Fee (₹)</label>
+                      <input 
+                        type="number"
+                        value={deliveryFee}
+                        onChange={(e) => setDeliveryFee(Number(e.target.value))}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-black outline-none focus:border-indigo-500 transition-all"
+                        placeholder="40"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Packaging Fee (₹)</label>
+                      <input 
+                        type="number"
+                        value={packagingFee}
+                        onChange={(e) => setPackagingFee(Number(e.target.value))}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-black outline-none focus:border-indigo-500 transition-all"
+                        placeholder="20"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Tax Rate (%)</label>
+                      <input 
+                        type="number"
+                        value={taxRate}
+                        onChange={(e) => setTaxRate(Number(e.target.value))}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-black outline-none focus:border-indigo-500 transition-all"
+                        placeholder="5"
+                      />
+                    </div>
+                    <button 
+                      onClick={() => saveFeesAndTaxes(deliveryFee, packagingFee, taxRate)}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-3 px-4 text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-indigo-100"
+                    >
+                      Save Taxes & Fees
+                    </button>
                   </div>
                 </div>
 

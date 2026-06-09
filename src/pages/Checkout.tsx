@@ -74,6 +74,9 @@ export default function Checkout() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showAnimatedSuccess, setShowAnimatedSuccess] = useState(false);
   const [isRestaurantOpen, setIsRestaurantOpen] = useState(true);
+  const [deliveryFee, setDeliveryFee] = useState<number>(40);
+  const [packagingFee, setPackagingFee] = useState<number>(20);
+  const [taxRate, setTaxRate] = useState<number>(0.05);
 
   // Address Form States
   const [isAddingAddress, setIsAddingAddress] = useState(false);
@@ -112,9 +115,10 @@ export default function Checkout() {
     }
   };
 
-  // Constants
-  const DELIVERY_FEE = 40;
-  const TAX_RATE = 0.05; // 5%
+  // Dynamic Pricing calculations
+  const DELIVERY_FEE = deliveryFee;
+  const PACKAGING_FEE = packagingFee;
+  const TAX_RATE = taxRate;
   const subtotal = total;
   const tax = Math.round(subtotal * TAX_RATE);
   const VALID_COUPONS: Record<string, number> = {
@@ -180,7 +184,11 @@ export default function Checkout() {
       doc(db, 'settings', 'restaurant'),
       (snap) => {
         if (snap.exists()) {
-          setIsRestaurantOpen(snap.data().isOpen);
+          const data = snap.data();
+          setIsRestaurantOpen(data.isOpen);
+          if (data.deliveryFee !== undefined) setDeliveryFee(Number(data.deliveryFee));
+          if (data.packagingFee !== undefined) setPackagingFee(Number(data.packagingFee));
+          if (data.taxRate !== undefined) setTaxRate(Number(data.taxRate) / 100);
         }
       }
     );
@@ -195,6 +203,7 @@ export default function Checkout() {
 
   // Order Placement logic
   const handlePlaceOrder = async () => {
+    if (isProcessingPayment) return;
     if (!user || !selectedAddress || (!selectedPayment && !isCOD)) return;
     
     if (!isRestaurantOpen) {
@@ -335,7 +344,6 @@ export default function Checkout() {
 
   // Render Helpers
   const [isCouponOpen, setIsCouponOpen] = useState(false);
-  const PACKAGING_FEE = 20;
 
   const renderSummary = () => (
     <motion.div 
@@ -419,7 +427,7 @@ export default function Checkout() {
           <span className="text-gray-900">₹{(PACKAGING_FEE + DELIVERY_FEE).toFixed(2)}</span>
         </div>
         <div className="flex justify-between items-center text-[9px] font-black text-gray-400 uppercase tracking-widest">
-          <span>Taxes (5%)</span>
+          <span>Taxes ({Math.round(TAX_RATE * 100)}%)</span>
           <span className="text-gray-900">₹{tax.toFixed(2)}</span>
         </div>
 
@@ -774,10 +782,13 @@ export default function Checkout() {
         <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 z-40 lg:hidden">
           <button 
             onClick={handlePlaceOrder}
-            disabled={!selectedPayment && !isCOD}
-            className="w-full h-14 bg-gradient-to-r from-[#FF2B2B] to-[#E31837] disabled:opacity-50 text-white rounded-2xl font-bold text-sm shadow-lg shadow-red-100 active:scale-95 flex items-center justify-between px-6"
+            disabled={(!selectedPayment && !isCOD) || isProcessingPayment}
+            className="w-full h-14 bg-gradient-to-r from-[#FF2B2B] to-[#E31837] disabled:opacity-55 text-white rounded-2xl font-bold text-sm shadow-lg shadow-red-100 active:scale-95 flex items-center justify-between px-6 animate-pulse-once"
           >
-            <span className="flex items-center gap-2">Place Order <ChevronRight size={18} /></span>
+            <span className="flex items-center gap-2">
+              {isProcessingPayment ? 'Placing Order...' : 'Place Order'}
+              <ChevronRight size={18} />
+            </span>
             <span className="font-black text-base">₹{(finalTotal + PACKAGING_FEE).toFixed(2)}</span>
           </button>
         </div>
@@ -1198,7 +1209,7 @@ export default function Checkout() {
                       <span className="text-gray-900 text-green-600">₹{DELIVERY_FEE.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm font-medium text-gray-500">
-                      <span>Taxes & Charges (5%)</span>
+                      <span>Taxes & Charges ({Math.round(TAX_RATE * 100)}%)</span>
                       <span className="text-gray-900">₹{tax.toFixed(2)}</span>
                     </div>
                     
@@ -1226,12 +1237,14 @@ export default function Checkout() {
                       else if (currentStep === 'address') setCurrentStep('payment');
                       else if (currentStep === 'payment') handlePlaceOrder();
                     }}
-                    disabled={(currentStep === 'address' && !selectedAddress) || (currentStep === 'payment' && !selectedPayment && !isCOD)}
+                    disabled={(currentStep === 'address' && !selectedAddress) || (currentStep === 'payment' && !selectedPayment && !isCOD) || isProcessingPayment}
                     className="w-full h-16 bg-gradient-to-r from-[#FF2B2B] to-[#E31837] text-white rounded-2xl font-bold text-lg shadow-[0_10px_30px_rgba(227,24,55,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
                   >
-                    {currentStep === 'summary' ? 'Proceed to Delivery' : 
-                     currentStep === 'address' ? 'Proceed to Payment' : 
-                     'Place Order Now'}
+                    {isProcessingPayment ? 'Placing Order...' : (
+                      currentStep === 'summary' ? 'Proceed to Delivery' : 
+                      currentStep === 'address' ? 'Proceed to Payment' : 
+                      'Place Order Now'
+                    )}
                     <ChevronRight size={20} />
                   </button>
                 </div>

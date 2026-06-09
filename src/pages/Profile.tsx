@@ -996,9 +996,39 @@ export default function Profile() {
                     </div>
                   ))}
                 </div>
-                <div className="pt-6 border-t border-dashed border-gray-200 flex justify-between items-center">
-                  <span className="font-black text-gray-400 uppercase text-[9px] tracking-[0.2em]">Total Amount</span>
-                  <span className="text-2xl font-black text-gray-950 tracking-tighter italic">₹{selectedOrder.total}</span>
+                <div className="pt-4 border-t border-dashed border-gray-100 space-y-2">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Items Subtotal</span>
+                    <span>₹{(selectedOrder.subtotal || selectedOrder.items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0)).toFixed(2)}</span>
+                  </div>
+                  {selectedOrder.packagingFee !== undefined && (
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Packaging Fee</span>
+                      <span>₹{Number(selectedOrder.packagingFee).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {selectedOrder.deliveryFee !== undefined && (
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Delivery Fee</span>
+                      <span>₹{Number(selectedOrder.deliveryFee).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {selectedOrder.tax !== undefined && (
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Taxes & Charges</span>
+                      <span>₹{Number(selectedOrder.tax).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {selectedOrder.discount !== undefined && Number(selectedOrder.discount) > 0 && (
+                    <div className="flex justify-between text-xs text-green-600 font-bold">
+                      <span>Discount</span>
+                      <span>-₹{Number(selectedOrder.discount).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="pt-4 border-t border-dashed border-gray-200 flex justify-between items-center">
+                  <span className="font-black text-gray-400 uppercase text-[9px] tracking-[0.2em]">Total Paid</span>
+                  <span className="text-2xl font-black text-red-650 tracking-tighter italic">₹{Number(selectedOrder.total).toFixed(2)}</span>
                 </div>
                 <button className="w-full bg-gray-900 text-white py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3 shadow-lg shadow-gray-200 hover:bg-black transition-all active:scale-[0.98]">
                   <Download size={16} /> Download PDF
