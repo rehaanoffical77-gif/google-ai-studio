@@ -1011,10 +1011,10 @@ export default function Checkout() {
                  currentOrder?.status === 'on the way' ? 'Almost There!' :
                  currentOrder?.status === 'ready' ? 'Hot & Ready!' : 'In the Works'}
               </h3>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+              <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
                 {isCancelled ? 'Cancelled' : currentOrder?.status || 'Processing'}
-              </p>
+              </div>
             </div>
             <div className="w-12 h-12 bg-red-600 rounded-2xl text-white flex items-center justify-center shadow-lg shadow-red-100 transform rotate-3 shrink-0">
               <Clock size={24} />
